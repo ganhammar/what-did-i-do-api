@@ -20,7 +20,11 @@ public class AppStack : Stack
     _configuration = configuration;
 
     // DynamoDB
-    var applicationTable = Table.FromTableName(this, "ApplicationTable", _tableName);
+    var applicationTable = Table.FromTableAttributes(this, "ApplicationTable", new TableAttributes
+    {
+      TableArn = $"arn:aws:dynamodb:{Region}:{Account}:table/{_tableName}",
+      GrantIndexPermissions = true,
+    });
 
     // API Gateway
     var apiGateway = new RestApi(this, "what-did-i-do-api", new RestApiProps
