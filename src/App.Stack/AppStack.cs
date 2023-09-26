@@ -34,20 +34,21 @@ public class AppStack : Stack
         },
       },
     });
+    var apiResource = apiGateway.Root.AddResource("api");
 
     // Authorizer
     var authorizer = CreateAuthorizerFunction();
 
     // Resource: Account
-    var accountResource = apiGateway.Root.AddResource("account");
+    var accountResource = apiResource.AddResource("account");
     HandleAccountResource(accountResource, applicationTable, authorizer);
 
     // Resource: Event
-    var eventResource = apiGateway.Root.AddResource("event");
+    var eventResource = apiResource.AddResource("event");
     HandleEventResource(eventResource, applicationTable, authorizer);
 
     // Resource: Tag
-    var tagResource = apiGateway.Root.AddResource("tag");
+    var tagResource = apiResource.AddResource("tag");
     HandleTagResource(tagResource, applicationTable, authorizer);
 
     // Output
