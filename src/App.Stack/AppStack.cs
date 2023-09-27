@@ -4,6 +4,7 @@ using Amazon.CDK.AWS.DynamoDB;
 using Amazon.CDK.AWS.IAM;
 using Amazon.CDK.AWS.SSM;
 using AppStack.Constructs;
+using AppStack.Models;
 using Constructs;
 using Microsoft.Extensions.Configuration;
 
@@ -27,7 +28,7 @@ public class AppStack : Stack
     });
 
     // API Gateway
-    var apiGateway = new RestApi(this, "what-did-i-do-api", new RestApiProps
+    var api = new RestApi(this, "what-did-i-do-api", new RestApiProps
     {
       RestApiName = "what-did-i-do-api",
       DefaultCorsPreflightOptions = new CorsOptions
@@ -38,14 +39,14 @@ public class AppStack : Stack
         },
       },
     });
-    var apiResource = apiGateway.Root.AddResource("api");
+    var apiResource = api.Root.AddResource("api");
 
     // Authorizer
     var authorizer = CreateAuthorizerFunction();
 
     // Resource: Account
     var accountResource = apiResource.AddResource("account");
-    HandleAccountResource(accountResource, applicationTable, authorizer);
+    HandleAccountResource(accountResource, api, applicationTable, authorizer);
 
     // Resource: Event
     var eventResource = apiResource.AddResource("event");
@@ -58,7 +59,7 @@ public class AppStack : Stack
     // Output
     new CfnOutput(this, "APIGWEndpoint", new CfnOutputProps
     {
-      Value = apiGateway.Url,
+      Value = api.Url,
     });
   }
 
@@ -112,6 +113,7 @@ public class AppStack : Stack
 
   private void HandleAccountResource(
     Amazon.CDK.AWS.APIGateway.Resource accountResource,
+    RestApi api,
     ITable applicationTable,
     RequestAuthorizer authorizer)
   {
@@ -125,6 +127,15 @@ public class AppStack : Stack
     {
       AuthorizationType = AuthorizationType.CUSTOM,
       Authorizer = authorizer,
+      RequestValidator = new RequestValidator(this, "CreateAccountValidator", new RequestValidatorProps
+      {
+        RestApi = api,
+        ValidateRequestBody = true,
+      }),
+      RequestModels = new Dictionary<string, IModel>
+      {
+        { "application/json", new CreateAccountModel(this, api) }
+      }
     });
 
     // List
