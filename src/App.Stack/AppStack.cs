@@ -50,7 +50,7 @@ public class AppStack : Stack
 
     // Resource: Event
     var eventResource = apiResource.AddResource("event");
-    HandleEventResource(eventResource, applicationTable, authorizer);
+    HandleEventResource(eventResource, api, applicationTable, authorizer);
 
     // Resource: Tag
     var tagResource = apiResource.AddResource("tag");
@@ -127,11 +127,10 @@ public class AppStack : Stack
     {
       AuthorizationType = AuthorizationType.CUSTOM,
       Authorizer = authorizer,
-      RequestValidator = new RequestValidator(this, "CreateAccountValidator", new RequestValidatorProps
+      RequestValidatorOptions = new RequestValidatorOptions
       {
-        RestApi = api,
         ValidateRequestBody = true,
-      }),
+      },
       RequestModels = new Dictionary<string, IModel>
       {
         { "application/json", new CreateAccountModel(this, api) },
@@ -153,6 +152,7 @@ public class AppStack : Stack
 
   private void HandleEventResource(
     Amazon.CDK.AWS.APIGateway.Resource eventResource,
+    RestApi api,
     ITable applicationTable,
     RequestAuthorizer authorizer)
   {
@@ -166,6 +166,14 @@ public class AppStack : Stack
     {
       AuthorizationType = AuthorizationType.CUSTOM,
       Authorizer = authorizer,
+      RequestValidatorOptions = new RequestValidatorOptions
+      {
+        ValidateRequestBody = true,
+      },
+      RequestModels = new Dictionary<string, IModel>
+      {
+        { "application/json", new CreateEventModel(this, api) },
+      },
     });
 
     // Delete
@@ -178,6 +186,14 @@ public class AppStack : Stack
     {
       AuthorizationType = AuthorizationType.CUSTOM,
       Authorizer = authorizer,
+      RequestValidatorOptions = new RequestValidatorOptions
+      {
+        ValidateRequestParameters = true,
+      },
+      RequestParameters = new Dictionary<string, bool>
+      {
+        { "method.request.querystring.id", true },
+      },
     });
 
     // Edit
@@ -220,6 +236,14 @@ public class AppStack : Stack
     {
       AuthorizationType = AuthorizationType.CUSTOM,
       Authorizer = authorizer,
+      RequestValidatorOptions = new RequestValidatorOptions
+      {
+        ValidateRequestParameters = true,
+      },
+      RequestParameters = new Dictionary<string, bool>
+      {
+        { "method.request.querystring.accountId", true },
+      },
     });
   }
 }
