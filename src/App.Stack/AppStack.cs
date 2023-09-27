@@ -54,7 +54,7 @@ public class AppStack : Stack
 
     // Resource: Tag
     var tagResource = apiResource.AddResource("tag");
-    HandleTagResource(tagResource, applicationTable, authorizer);
+    HandleTagResource(tagResource, api, applicationTable, authorizer);
 
     // Output
     new CfnOutput(this, "APIGWEndpoint", new CfnOutputProps
@@ -127,11 +127,11 @@ public class AppStack : Stack
     {
       AuthorizationType = AuthorizationType.CUSTOM,
       Authorizer = authorizer,
-      RequestValidatorOptions = new RequestValidatorOptions
+      RequestValidator = new RequestValidator(this, "CreateAccountValidator", new RequestValidatorProps
       {
         ValidateRequestBody = true,
-        RequestValidatorName = "CreateAccountValidator",
-      },
+        RestApi = api,
+      }),
       RequestModels = new Dictionary<string, IModel>
       {
         { "application/json", new CreateAccountModel(this, api) },
@@ -167,11 +167,11 @@ public class AppStack : Stack
     {
       AuthorizationType = AuthorizationType.CUSTOM,
       Authorizer = authorizer,
-      RequestValidatorOptions = new RequestValidatorOptions
+      RequestValidator = new RequestValidator(this, "CreateEventValidator", new RequestValidatorProps
       {
         ValidateRequestBody = true,
-        RequestValidatorName = "CreateEventValidator",
-      },
+        RestApi = api,
+      }),
       RequestModels = new Dictionary<string, IModel>
       {
         { "application/json", new CreateEventModel(this, api) },
@@ -188,11 +188,11 @@ public class AppStack : Stack
     {
       AuthorizationType = AuthorizationType.CUSTOM,
       Authorizer = authorizer,
-      RequestValidatorOptions = new RequestValidatorOptions
+      RequestValidator = new RequestValidator(this, "DeleteEventValidator", new RequestValidatorProps
       {
         ValidateRequestParameters = true,
-        RequestValidatorName = "DeleteEventValidator",
-      },
+        RestApi = api,
+      }),
       RequestParameters = new Dictionary<string, bool>
       {
         { "method.request.querystring.id", true },
@@ -226,6 +226,7 @@ public class AppStack : Stack
 
   private void HandleTagResource(
     Amazon.CDK.AWS.APIGateway.Resource tagResource,
+    RestApi api,
     ITable applicationTable,
     RequestAuthorizer authorizer)
   {
@@ -239,11 +240,11 @@ public class AppStack : Stack
     {
       AuthorizationType = AuthorizationType.CUSTOM,
       Authorizer = authorizer,
-      RequestValidatorOptions = new RequestValidatorOptions
+      RequestValidator = new RequestValidator(this, "ListTagsValidator", new RequestValidatorProps
       {
         ValidateRequestParameters = true,
-        RequestValidatorName = "ListTagsValidator",
-      },
+        RestApi = api,
+      }),
       RequestParameters = new Dictionary<string, bool>
       {
         { "method.request.querystring.accountId", true },
