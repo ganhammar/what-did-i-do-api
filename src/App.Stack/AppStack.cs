@@ -130,6 +130,7 @@ public class AppStack : Stack
       RequestValidatorOptions = new RequestValidatorOptions
       {
         ValidateRequestBody = true,
+        RequestValidatorName = "CreateAccountValidator",
       },
       RequestModels = new Dictionary<string, IModel>
       {
@@ -169,6 +170,7 @@ public class AppStack : Stack
       RequestValidatorOptions = new RequestValidatorOptions
       {
         ValidateRequestBody = true,
+        RequestValidatorName = "CreateEventValidator",
       },
       RequestModels = new Dictionary<string, IModel>
       {
@@ -189,6 +191,7 @@ public class AppStack : Stack
       RequestValidatorOptions = new RequestValidatorOptions
       {
         ValidateRequestParameters = true,
+        RequestValidatorName = "DeleteEventValidator",
       },
       RequestParameters = new Dictionary<string, bool>
       {
@@ -239,6 +242,7 @@ public class AppStack : Stack
       RequestValidatorOptions = new RequestValidatorOptions
       {
         ValidateRequestParameters = true,
+        RequestValidatorName = "ListTagsValidator",
       },
       RequestParameters = new Dictionary<string, bool>
       {
