@@ -134,8 +134,8 @@ public class AppStack : Stack
       }),
       RequestModels = new Dictionary<string, IModel>
       {
-        { "application/json", new CreateAccountModel(this, api) }
-      }
+        { "application/json", new CreateAccountModel(this, api) },
+      },
     });
 
     // List
