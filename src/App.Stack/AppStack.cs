@@ -209,6 +209,15 @@ public class AppStack : Stack
     {
       AuthorizationType = AuthorizationType.CUSTOM,
       Authorizer = authorizer,
+      RequestValidator = new RequestValidator(this, "EditEventValidator", new RequestValidatorProps
+      {
+        ValidateRequestBody = true,
+        RestApi = api,
+      }),
+      RequestModels = new Dictionary<string, IModel>
+      {
+        { "application/json", new EditEventModel(this, api) },
+      },
     });
 
     // List
@@ -221,6 +230,16 @@ public class AppStack : Stack
     {
       AuthorizationType = AuthorizationType.CUSTOM,
       Authorizer = authorizer,
+      RequestValidator = new RequestValidator(this, "ListEventValidator", new RequestValidatorProps
+      {
+        ValidateRequestParameters = true,
+        RestApi = api,
+      }),
+      RequestParameters = new Dictionary<string, bool>
+      {
+        { "method.request.querystring.accountId", true },
+        { "method.request.querystring.limit", true },
+      },
     });
   }
 
