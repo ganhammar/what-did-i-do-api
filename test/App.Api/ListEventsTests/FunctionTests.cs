@@ -3,7 +3,7 @@ using System.Text.Json;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.TestUtilities;
 using App.Api.ListEvents;
-using FluentValidation.Results;
+using App.Api.Shared.Infrastructure;
 using TestBase;
 using TestBase.Helpers;
 
@@ -106,39 +106,6 @@ public class FunctionTests
   }
 
   [Fact]
-  public async Task Should_ReturnBadRequest_When_AccountIdIsNotSet()
-  {
-    var function = new Function();
-    var context = new TestLambdaContext();
-    var request = new APIGatewayProxyRequest
-    {
-      HttpMethod = HttpMethod.Post.Method,
-      RequestContext = new APIGatewayProxyRequest.ProxyRequestContext
-      {
-        RequestId = Guid.NewGuid().ToString(),
-        Authorizer = new()
-        {
-          { "scope", "email test event" },
-          { "sub", Guid.NewGuid() },
-          { "email", "test@wdid.fyi" },
-        },
-      },
-    };
-    var response = await function.FunctionHandler(request, context);
-
-    Assert.Equal((int)HttpStatusCode.BadRequest, response.StatusCode);
-
-    var errors = JsonSerializer.Deserialize<List<ValidationFailure>>(response.Body, new JsonSerializerOptions()
-    {
-      PropertyNameCaseInsensitive = true,
-    });
-
-    Assert.NotNull(errors);
-    Assert.Contains(errors, error => error.PropertyName == nameof(ListEventsQuery.Query.AccountId)
-      && error.ErrorCode == "NotEmptyValidator");
-  }
-
-  [Fact]
   public async Task Should_ReturnBadRequest_When_FromDateIsSetAndToDateIsnt()
   {
     var function = new Function();
@@ -168,14 +135,14 @@ public class FunctionTests
 
     Assert.Equal((int)HttpStatusCode.BadRequest, response.StatusCode);
 
-    var errors = JsonSerializer.Deserialize<List<ValidationFailure>>(response.Body, new JsonSerializerOptions()
+    var errors = JsonSerializer.Deserialize<List<FunctionError>>(response.Body, new JsonSerializerOptions()
     {
       PropertyNameCaseInsensitive = true,
     });
 
     Assert.NotNull(errors);
-    Assert.Contains(errors, error => error.PropertyName == nameof(ListEventsQuery.Query.ToDate)
-      && error.ErrorCode == "NotEmptyValidator");
+    Assert.Contains(errors, error => error.PropertyName == nameof(Function.Query.ToDate)
+      && error.ErrorCode == "NotEmpty");
   }
 
   [Fact]
@@ -208,14 +175,14 @@ public class FunctionTests
 
     Assert.Equal((int)HttpStatusCode.BadRequest, response.StatusCode);
 
-    var errors = JsonSerializer.Deserialize<List<ValidationFailure>>(response.Body, new JsonSerializerOptions()
+    var errors = JsonSerializer.Deserialize<List<FunctionError>>(response.Body, new JsonSerializerOptions()
     {
       PropertyNameCaseInsensitive = true,
     });
 
     Assert.NotNull(errors);
-    Assert.Contains(errors, error => error.PropertyName == nameof(ListEventsQuery.Query.FromDate)
-      && error.ErrorCode == "NotEmptyValidator");
+    Assert.Contains(errors, error => error.PropertyName == nameof(Function.Query.FromDate)
+      && error.ErrorCode == "NotEmpty");
   }
 
   [Fact]
@@ -249,60 +216,19 @@ public class FunctionTests
 
     Assert.Equal((int)HttpStatusCode.BadRequest, response.StatusCode);
 
-    var errors = JsonSerializer.Deserialize<List<ValidationFailure>>(response.Body, new JsonSerializerOptions()
+    var errors = JsonSerializer.Deserialize<List<FunctionError>>(response.Body, new JsonSerializerOptions()
     {
       PropertyNameCaseInsensitive = true,
     });
 
     Assert.NotNull(errors);
-    Assert.Contains(errors, error => error.PropertyName == nameof(ListEventsQuery.Query.FromDate)
-      && error.ErrorCode == "LessThanValidator");
-  }
-
-  [Fact]
-  public async Task Should_ReturnBadRequest_When_LimitIsNotSet()
-  {
-    var function = new Function();
-    var context = new TestLambdaContext();
-    var data = new Dictionary<string, string>
-    {
-      { "AccountId", Guid.NewGuid().ToString() },
-      { "FromDate", DateTime.UtcNow.AddDays(-7).ToString() },
-      { "ToDate", DateTime.UtcNow.AddDays(-6).ToString() },
-    };
-    var request = new APIGatewayProxyRequest
-    {
-      HttpMethod = HttpMethod.Post.Method,
-      QueryStringParameters = data,
-      RequestContext = new APIGatewayProxyRequest.ProxyRequestContext
-      {
-        RequestId = Guid.NewGuid().ToString(),
-        Authorizer = new()
-        {
-          { "scope", "email test event" },
-          { "sub", Guid.NewGuid() },
-          { "email", "test@wdid.fyi" },
-        },
-      },
-    };
-    var response = await function.FunctionHandler(request, context);
-
-    Assert.Equal((int)HttpStatusCode.BadRequest, response.StatusCode);
-
-    var errors = JsonSerializer.Deserialize<List<ValidationFailure>>(response.Body, new JsonSerializerOptions()
-    {
-      PropertyNameCaseInsensitive = true,
-    });
-
-    Assert.NotNull(errors);
-    Assert.Contains(errors, error => error.PropertyName == nameof(ListEventsQuery.Query.Limit)
-      && error.ErrorCode == "NotEmptyValidator");
+    Assert.Contains(errors, error => error.PropertyName == nameof(Function.Query.ToDate)
+      && error.ErrorCode == "InvalidInput");
   }
 
   [Theory]
-  [InlineData("-1", "GreaterThanValidator")]
-  [InlineData("201", "LessThanOrEqualValidator")]
-  [InlineData("NaN", "NotEmptyValidator")]
+  [InlineData("-1", "InvalidInput")]
+  [InlineData("201", "InvalidInput")]
   public async Task Should_ReturnBadRequest_When_LimitIsInvalid(string limit, string expectedErrorCode)
   {
     var function = new Function();
@@ -333,13 +259,13 @@ public class FunctionTests
 
     Assert.Equal((int)HttpStatusCode.BadRequest, response.StatusCode);
 
-    var errors = JsonSerializer.Deserialize<List<ValidationFailure>>(response.Body, new JsonSerializerOptions()
+    var errors = JsonSerializer.Deserialize<List<FunctionError>>(response.Body, new JsonSerializerOptions()
     {
       PropertyNameCaseInsensitive = true,
     });
 
     Assert.NotNull(errors);
-    Assert.Contains(errors, error => error.PropertyName == nameof(ListEventsQuery.Query.Limit)
+    Assert.Contains(errors, error => error.PropertyName == nameof(Function.Query.Limit)
       && error.ErrorCode == expectedErrorCode);
   }
 
@@ -370,9 +296,9 @@ public class FunctionTests
     };
     var response = await function.FunctionHandler(request, context);
 
-    Assert.Equal((int)HttpStatusCode.BadRequest, response.StatusCode);
+    Assert.Equal((int)HttpStatusCode.Unauthorized, response.StatusCode);
 
-    var errors = JsonSerializer.Deserialize<List<ValidationFailure>>(response.Body, new JsonSerializerOptions()
+    var errors = JsonSerializer.Deserialize<List<FunctionError>>(response.Body, new JsonSerializerOptions()
     {
       PropertyNameCaseInsensitive = true,
     });
@@ -469,7 +395,7 @@ public class FunctionTests
       Tags = new[] { "testing" },
     });
 
-    var getResponse = async (Dictionary<string, string> data) =>
+    static async Task<APIGatewayHttpApiV2ProxyResponse> getResponse(Dictionary<string, string> data)
     {
       var function = new Function();
       var context = new TestLambdaContext();
@@ -489,7 +415,7 @@ public class FunctionTests
         },
       };
       return await function.FunctionHandler(request, context);
-    };
+    }
 
     var data = new Dictionary<string, string>
     {

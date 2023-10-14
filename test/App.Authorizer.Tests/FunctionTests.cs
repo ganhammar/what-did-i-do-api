@@ -91,11 +91,11 @@ public class FunctionTests
             Email = "test@wdid.fyi",
             TokenUsage = "access_token",
           }));
-        services.AddSingleton<ITokenClient>(mockedTokenClient.Object);
+        services.AddSingleton(mockedTokenClient.Object);
 
         var mockedOptions = new Mock<IOptionsMonitor<AuthorizationOptions>>();
         mockedOptions.Setup(x => x.CurrentValue).Returns(new AuthorizationOptions());
-        services.AddSingleton<IOptionsMonitor<AuthorizationOptions>>(mockedOptions.Object);
+        services.AddSingleton(mockedOptions.Object);
       });
 
     return function.Object;

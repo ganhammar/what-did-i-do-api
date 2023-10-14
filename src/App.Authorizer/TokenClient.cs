@@ -57,12 +57,12 @@ public class TokenClient : ITokenClient
     throw new UnauthorizedAccessException("Unauthorized");
   }
 
-  private async Task<string> GetTokenForIntrospection(AuthorizationOptions authorizationOptions, string uri)
+  private async Task<string?> GetTokenForIntrospection(AuthorizationOptions authorizationOptions, string uri)
   {
     if (_memoryCache.TryGetValue(_cacheKey, out var token))
     {
       Logger.LogInformation("Internal token found in cache, reusing");
-      return (string)token;
+      return token as string;
     }
 
     Logger.LogInformation("Internal token not found in cache, requesting");

@@ -28,11 +28,13 @@
     <MediatRExtensionsMicrosoftDependencyInjectionVersion>11.1.0</MediatRExtensionsMicrosoftDependencyInjectionVersion>
     <MicrosoftAspNetCoreTestHostVersion>6.0.19</MicrosoftAspNetCoreTestHostVersion>
     <MicrosoftExtensionsConfigurationBinderVersion>7.0.4</MicrosoftExtensionsConfigurationBinderVersion>
+    <MicrosoftExtensionsCachingMemoryVersion>7.0.0</MicrosoftExtensionsCachingMemoryVersion>
     <MicrosoftExtensionsConfigurationEnvironmentVariablesVersion>7.0.0</MicrosoftExtensionsConfigurationEnvironmentVariablesVersion>
     <MicrosoftExtensionsConfigurationFileExtensionsVersion>7.0.0</MicrosoftExtensionsConfigurationFileExtensionsVersion>
     <MicrosoftExtensionsConfigurationJsonVersion>7.0.0</MicrosoftExtensionsConfigurationJsonVersion>
     <MicrosoftExtensionsDependencyInjectionVersion>7.0.0</MicrosoftExtensionsDependencyInjectionVersion>
-    <MicrosoftExtensionsOptionsVersion>7.0.1</MicrosoftExtensionsOptionsVersion>
+    <MicrosoftExtensionsHttpVersion>7.0.0</MicrosoftExtensionsHttpVersion>
+    <MicrosoftExtensionsOptionsConfigurationExtensionsVersion>7.0.0</MicrosoftExtensionsOptionsConfigurationExtensionsVersion>
     <MicrosoftIdentityModelProtocolsVersion>6.31.0</MicrosoftIdentityModelProtocolsVersion>
     <MicrosoftIdentityModelProtocolsVersionOpenIdConnect>6.31.0</MicrosoftIdentityModelProtocolsVersionOpenIdConnect>
     <MicrosoftNETTestSdkVersion>17.6.3</MicrosoftNETTestSdkVersion>

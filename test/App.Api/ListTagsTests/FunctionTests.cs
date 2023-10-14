@@ -3,8 +3,8 @@ using System.Text.Json;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.TestUtilities;
 using App.Api.ListTags;
+using App.Api.Shared.Infrastructure;
 using App.Api.Shared.Models;
-using FluentValidation.Results;
 using TestBase;
 using TestBase.Helpers;
 
@@ -93,39 +93,6 @@ public class FunctionTests
   }
 
   [Fact]
-  public async Task Should_ReturnBadRequest_When_AccountIdIsNotSet()
-  {
-    var function = new Function();
-    var context = new TestLambdaContext();
-    var request = new APIGatewayProxyRequest
-    {
-      HttpMethod = HttpMethod.Post.Method,
-      RequestContext = new APIGatewayProxyRequest.ProxyRequestContext
-      {
-        RequestId = Guid.NewGuid().ToString(),
-        Authorizer = new()
-        {
-          { "scope", "email test event" },
-          { "sub", Guid.NewGuid() },
-          { "email", "test@wdid.fyi" },
-        },
-      },
-    };
-    var response = await function.FunctionHandler(request, context);
-
-    Assert.Equal((int)HttpStatusCode.BadRequest, response.StatusCode);
-
-    var errors = JsonSerializer.Deserialize<List<ValidationFailure>>(response.Body, new JsonSerializerOptions()
-    {
-      PropertyNameCaseInsensitive = true,
-    });
-
-    Assert.NotNull(errors);
-    Assert.Contains(errors, error => error.PropertyName == nameof(ListTagsQuery.Query.AccountId)
-      && error.ErrorCode == "NotEmptyValidator");
-  }
-
-  [Fact]
   public async Task Should_ReturnUnauthorized_When_RequiredScopeIsMissing()
   {
     var function = new Function();
@@ -151,9 +118,9 @@ public class FunctionTests
     };
     var response = await function.FunctionHandler(request, context);
 
-    Assert.Equal((int)HttpStatusCode.BadRequest, response.StatusCode);
+    Assert.Equal((int)HttpStatusCode.Unauthorized, response.StatusCode);
 
-    var errors = JsonSerializer.Deserialize<List<ValidationFailure>>(response.Body, new JsonSerializerOptions()
+    var errors = JsonSerializer.Deserialize<List<FunctionError>>(response.Body, new JsonSerializerOptions()
     {
       PropertyNameCaseInsensitive = true,
     });

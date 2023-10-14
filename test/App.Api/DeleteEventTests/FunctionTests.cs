@@ -5,8 +5,8 @@ using Amazon.DynamoDBv2.DataModel;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.TestUtilities;
 using App.Api.DeleteEvent;
+using App.Api.Shared.Infrastructure;
 using App.Api.Shared.Models;
-using FluentValidation.Results;
 using TestBase;
 using TestBase.Helpers;
 
@@ -139,14 +139,14 @@ public class FunctionTests
 
     Assert.Equal((int)HttpStatusCode.BadRequest, response.StatusCode);
 
-    var errors = JsonSerializer.Deserialize<List<ValidationFailure>>(response.Body, new JsonSerializerOptions()
+    var errors = JsonSerializer.Deserialize<List<FunctionError>>(response.Body, new JsonSerializerOptions()
     {
       PropertyNameCaseInsensitive = true,
     });
 
     Assert.NotNull(errors);
-    Assert.Contains(errors, error => error.PropertyName == nameof(DeleteEventCommand.Command.Id)
-      && error.ErrorCode == "NotEmptyValidator");
+    Assert.Contains(errors, error => error.PropertyName == "Body"
+      && error.ErrorCode == "InvalidRequest");
   }
 
   [Fact]
@@ -177,14 +177,14 @@ public class FunctionTests
 
     Assert.Equal((int)HttpStatusCode.BadRequest, response.StatusCode);
 
-    var errors = JsonSerializer.Deserialize<List<ValidationFailure>>(response.Body, new JsonSerializerOptions()
+    var errors = JsonSerializer.Deserialize<List<FunctionError>>(response.Body, new JsonSerializerOptions()
     {
       PropertyNameCaseInsensitive = true,
     });
 
     Assert.NotNull(errors);
-    Assert.Contains(errors, error => error.PropertyName == nameof(DeleteEventCommand.Command.Id)
-      && error.ErrorCode == DeleteEventCommand.InvalidId);
+    Assert.Contains(errors, error => error.PropertyName == "Body"
+      && error.ErrorCode == "InvalidRequest");
   }
 
   [Fact]
@@ -220,9 +220,9 @@ public class FunctionTests
     };
     var response = await function.FunctionHandler(request, context);
 
-    Assert.Equal((int)HttpStatusCode.BadRequest, response.StatusCode);
+    Assert.Equal((int)HttpStatusCode.Unauthorized, response.StatusCode);
 
-    var errors = JsonSerializer.Deserialize<List<ValidationFailure>>(response.Body, new JsonSerializerOptions()
+    var errors = JsonSerializer.Deserialize<List<FunctionError>>(response.Body, new JsonSerializerOptions()
     {
       PropertyNameCaseInsensitive = true,
     });

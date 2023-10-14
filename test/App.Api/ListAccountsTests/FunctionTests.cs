@@ -4,8 +4,8 @@ using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.TestUtilities;
 using App.Api.ListAccounts;
 using App.Api.Shared.Extensions;
+using App.Api.Shared.Infrastructure;
 using App.Api.Shared.Models;
-using FluentValidation.Results;
 using TestBase;
 using TestBase.Helpers;
 
@@ -80,9 +80,9 @@ public class FunctionTests
     };
     var response = await function.FunctionHandler(request, context);
 
-    Assert.Equal((int)HttpStatusCode.BadRequest, response.StatusCode);
+    Assert.Equal((int)HttpStatusCode.Unauthorized, response.StatusCode);
 
-    var errors = JsonSerializer.Deserialize<List<ValidationFailure>>(response.Body, new JsonSerializerOptions()
+    var errors = JsonSerializer.Deserialize<List<FunctionError>>(response.Body, new JsonSerializerOptions()
     {
       PropertyNameCaseInsensitive = true,
     });

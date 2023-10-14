@@ -1,8 +1,8 @@
 ﻿using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.Serialization.SystemTextJson;
-using App.Api.Shared.Infrastructure;
 using AWS.Lambda.Powertools.Logging;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -10,20 +10,35 @@ using Microsoft.Extensions.Options;
 
 namespace App.Authorizer;
 
-public class Function : FunctionBase
+public class Function
 {
-  public Function() : base("/WDID/Authorizer") { }
+  private readonly IConfiguration Configuration;
+  private readonly IServiceProvider ServiceProvider;
 
-  protected override void ConfigureServices(IServiceCollection services)
+  protected virtual void ConfigureServices(IServiceCollection services)
   {
     services.Configure<AuthorizationOptions>(Configuration.GetSection(nameof(AuthorizationOptions)));
     services.AddMemoryCache();
     services.AddHttpClient<ITokenClient, TokenClient>();
   }
 
+  public Function()
+  {
+    Configuration = new ConfigurationBuilder()
+      .SetBasePath(Directory.GetCurrentDirectory())
+      .AddJsonFile("appsettings.json", optional: true)
+      .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")}.json", optional: true)
+      .AddSystemsManager("/WDID/Authorizer")
+      .Build();
+
+    var services = new ServiceCollection();
+    ConfigureServices(services);
+    ServiceProvider = services.BuildServiceProvider();
+  }
+
   [Logging(LogEvent = true)]
   public async Task<APIGatewayCustomAuthorizerResponse> FunctionHandler(
-    APIGatewayCustomAuthorizerRequest request, ILambdaContext context)
+    APIGatewayCustomAuthorizerRequest request, ILambdaContext _)
   {
     AppendLookup(request.RequestContext.RequestId);
 
@@ -69,5 +84,14 @@ public class Function : FunctionBase
         { "email", result.Email },
       },
     };
+  }
+
+  private void AppendLookup(string lookupId)
+  {
+    var lookupInfo = new Dictionary<string, object>()
+    {
+      { "LookupInfo", new Dictionary<string, object>{{ "LookupId", lookupId }} },
+    };
+    Logger.AppendKeys(lookupInfo);
   }
 }

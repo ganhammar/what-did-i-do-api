@@ -29,7 +29,7 @@ public static class AccountMapper
 
   public static string GetSortKey(AccountDto instance) => "#";
 
-  public static async Task<string> GetUniqueId(string name, DynamoDBContext context, CancellationToken cancellationToken)
+  public static async Task<string> GetUniqueId(string name, DynamoDBContext context, CancellationToken cancellationToken = default)
   {
     var baseKey = GetAccountId(name.UrlFriendly());
     var suffix = 0;

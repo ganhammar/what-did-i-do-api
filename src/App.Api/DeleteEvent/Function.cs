@@ -1,25 +1,19 @@
-﻿using System.Reflection;
+﻿using Amazon.DynamoDBv2;
+using Amazon.DynamoDBv2.DataModel;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.Serialization.SystemTextJson;
 using App.Api.Shared.Infrastructure;
-using FluentValidation;
-using MediatR;
-using Microsoft.Extensions.DependencyInjection;
+using App.Api.Shared.Models;
+using AWS.Lambda.Powertools.Logging;
 
 [assembly: LambdaSerializer(typeof(CamelCaseLambdaJsonSerializer))]
 
 namespace App.Api.DeleteEvent;
 
-public class Function : APIGatewayProxyRequestBase
+public class Function : FunctionBase
 {
-  protected override void ConfigureServices(IServiceCollection services)
-  {
-    services.AddMediatR(Assembly.GetCallingAssembly());
-    services.AddTransient<IResponse, Response>();
-    services.AddTransient<IRequestHandler<DeleteEventCommand.Command, IResponse>, DeleteEventCommand.CommandHandler>();
-    services.AddTransient<IValidator<DeleteEventCommand.Command>, DeleteEventCommand.CommandValidator>();
-  }
+  public Function() : base("event") { }
 
   protected override async Task<APIGatewayHttpApiV2ProxyResponse> Handler(
     APIGatewayProxyRequest apiGatewayProxyRequest)
@@ -30,9 +24,52 @@ public class Function : APIGatewayProxyRequestBase
 
     queryStringParameters.TryGetValue("id", out var id);
 
-    return await Respond(new DeleteEventCommand.Command
+    if (EventMapper.GetKeys(id).Length != 2)
     {
-      Id = id,
-    });
+      return Respond(false);
+    }
+
+    Logger.LogInformation("Attempting to delete Event");
+
+    var config = new DynamoDBOperationConfig()
+    {
+      OverrideTableName = Environment.GetEnvironmentVariable("TABLE_NAME"),
+    };
+    var client = new DynamoDBContext(new AmazonDynamoDBClient());
+    var keys = EventMapper.GetKeys(id);
+    var item = await client.LoadAsync<Event>(keys[0], keys[1], config);
+
+    if (item != default)
+    {
+      Logger.LogInformation("Matching Event found, deleting");
+      await client.DeleteAsync(item, config);
+      await DeleteEventTags(item, client, config);
+    }
+
+    return Respond();
+  }
+
+  public async Task DeleteEventTags(
+    Event item, DynamoDBContext client, DynamoDBOperationConfig config)
+  {
+    if (item.Tags?.Any() != true)
+    {
+      return;
+    }
+
+    var eventDto = EventMapper.ToDto(item);
+    var batch = client.CreateBatchWrite<EventTag>(config);
+
+    foreach (var tag in eventDto.Tags!)
+    {
+      batch.AddDeleteItem(EventTagMapper.FromDto(new()
+      {
+        AccountId = eventDto.AccountId,
+        Date = eventDto.Date,
+        Value = tag,
+      }));
+    }
+
+    await batch.ExecuteAsync();
   }
 }

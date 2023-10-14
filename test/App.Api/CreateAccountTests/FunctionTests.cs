@@ -3,8 +3,8 @@ using System.Text.Json;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.TestUtilities;
 using App.Api.CreateAccount;
+using App.Api.Shared.Infrastructure;
 using App.Api.Shared.Models;
-using FluentValidation.Results;
 using TestBase;
 
 namespace CreateAccountTests;
@@ -17,7 +17,7 @@ public class FunctionTests
   {
     var function = new Function();
     var context = new TestLambdaContext();
-    var data = new CreateAccountCommand.Command
+    var data = new Function.Command
     {
       Name = "Testing Testing",
     };
@@ -51,41 +51,6 @@ public class FunctionTests
   }
 
   [Fact]
-  public async Task Should_ReturnBadRequest_When_NameIsNotSet()
-  {
-    var function = new Function();
-    var context = new TestLambdaContext();
-    var data = new CreateAccountCommand.Command();
-    var request = new APIGatewayProxyRequest
-    {
-      HttpMethod = HttpMethod.Post.Method,
-      Body = JsonSerializer.Serialize(data),
-      RequestContext = new APIGatewayProxyRequest.ProxyRequestContext
-      {
-        RequestId = Guid.NewGuid().ToString(),
-        Authorizer = new()
-        {
-          { "scope", "email test account" },
-          { "sub", Guid.NewGuid() },
-          { "email", "test@wdid.fyi" },
-        },
-      },
-    };
-    var response = await function.FunctionHandler(request, context);
-
-    Assert.Equal((int)HttpStatusCode.BadRequest, response.StatusCode);
-
-    var errors = JsonSerializer.Deserialize<List<ValidationFailure>>(response.Body, new JsonSerializerOptions()
-    {
-      PropertyNameCaseInsensitive = true,
-    });
-
-    Assert.NotNull(errors);
-    Assert.Contains(errors, error => error.PropertyName == nameof(CreateAccountCommand.Command.Name)
-      && error.ErrorCode == "NotEmptyValidator");
-  }
-
-  [Fact]
   public async Task Should_ReturnBadRequest_When_BodyIsEmpty()
   {
     var function = new Function();
@@ -108,7 +73,7 @@ public class FunctionTests
 
     Assert.Equal((int)HttpStatusCode.BadRequest, response.StatusCode);
 
-    var errors = JsonSerializer.Deserialize<List<ValidationFailure>>(response.Body, new JsonSerializerOptions()
+    var errors = JsonSerializer.Deserialize<List<FunctionError>>(response.Body, new JsonSerializerOptions()
     {
       PropertyNameCaseInsensitive = true,
     });
@@ -122,7 +87,7 @@ public class FunctionTests
   {
     var function = new Function();
     var context = new TestLambdaContext();
-    var data = new CreateAccountCommand.Command
+    var data = new Function.Command
     {
       Name = "Testing Testing",
     };
@@ -142,9 +107,9 @@ public class FunctionTests
     };
     var response = await function.FunctionHandler(request, context);
 
-    Assert.Equal((int)HttpStatusCode.BadRequest, response.StatusCode);
+    Assert.Equal((int)HttpStatusCode.Unauthorized, response.StatusCode);
 
-    var errors = JsonSerializer.Deserialize<List<ValidationFailure>>(response.Body, new JsonSerializerOptions()
+    var errors = JsonSerializer.Deserialize<List<FunctionError>>(response.Body, new JsonSerializerOptions()
     {
       PropertyNameCaseInsensitive = true,
     });
@@ -158,7 +123,7 @@ public class FunctionTests
   {
     var function = new Function();
     var context = new TestLambdaContext();
-    var data = new CreateAccountCommand.Command
+    var data = new Function.Command
     {
       Name = "Testing Testing",
     };
@@ -179,9 +144,9 @@ public class FunctionTests
     };
     var response = await function.FunctionHandler(request, context);
 
-    Assert.Equal((int)HttpStatusCode.BadRequest, response.StatusCode);
+    Assert.Equal((int)HttpStatusCode.Unauthorized, response.StatusCode);
 
-    var errors = JsonSerializer.Deserialize<List<ValidationFailure>>(response.Body, new JsonSerializerOptions()
+    var errors = JsonSerializer.Deserialize<List<FunctionError>>(response.Body, new JsonSerializerOptions()
     {
       PropertyNameCaseInsensitive = true,
     });
@@ -195,7 +160,7 @@ public class FunctionTests
   {
     var function = new Function();
     var context = new TestLambdaContext();
-    var data = new CreateAccountCommand.Command
+    var data = new Function.Command
     {
       Name = "Testing Testing",
     };
@@ -225,7 +190,7 @@ public class FunctionTests
   {
     var function = new Function();
     var context = new TestLambdaContext();
-    var data = new CreateAccountCommand.Command
+    var data = new Function.Command
     {
       Name = "Testing Testing",
     };

@@ -9,6 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Amazon.Extensions.Configuration.SystemsManager"
+      Version="$(AmazonExtensionsConfigurationSystemsManagerVersion)" />
     <PackageReference Include="Amazon.Lambda.APIGatewayEvents"
       Version="$(AmazonLambdaAPIGatewayEventsVersion)" />
     <PackageReference Include="Amazon.Lambda.Core" Version="$(AmazonLambdaCoreVersion)" />
@@ -16,19 +18,23 @@
       Version="$(AmazonLambdaSerializationSystemTextJsonVersion)" />
     <PackageReference Include="AWS.Lambda.Powertools.Logging"
       Version="$(AWSLambdaPowertoolsLoggingVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory"
+      Version="$(MicrosoftExtensionsCachingMemoryVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Http"
+      Version="$(MicrosoftExtensionsHttpVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions"
+      Version="$(MicrosoftExtensionsConfigurationFileExtensionsVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json"
+      Version="$(MicrosoftExtensionsConfigurationJsonVersion)" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection"
+      Version="$(MicrosoftExtensionsDependencyInjectionVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="7.0.0" />
     <PackageReference Include="Microsoft.IdentityModel.Protocols"
       Version="$(MicrosoftIdentityModelProtocolsVersion)" />
     <PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect"
       Version="$(MicrosoftIdentityModelProtocolsVersionOpenIdConnect)" />
-    <PackageReference Include="Microsoft.Extensions.Options"
-      Version="$(MicrosoftExtensionsOptionsVersion)" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt"
       Version="$(SystemIdentityModelTokensJwtVersion)" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference
-      Include="..\Shared\Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>

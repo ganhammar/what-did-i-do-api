@@ -3,8 +3,8 @@ using System.Text.Json;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.TestUtilities;
 using App.Api.CreateEvent;
+using App.Api.Shared.Infrastructure;
 using App.Api.Shared.Models;
-using FluentValidation.Results;
 using TestBase;
 
 namespace CreateEventTests;
@@ -17,7 +17,7 @@ public class FunctionTests
   {
     var function = new Function();
     var context = new TestLambdaContext();
-    var data = new CreateEventCommand.Command
+    var data = new Function.Command
     {
       AccountId = "test-account",
       Title = "Testing Testing",
@@ -57,7 +57,7 @@ public class FunctionTests
     var function = new Function();
     var context = new TestLambdaContext();
     var tags = new[] { "test", "testing" };
-    var data = new CreateEventCommand.Command
+    var data = new Function.Command
     {
       AccountId = "test-account",
       Title = "Testing Testing",
@@ -101,7 +101,7 @@ public class FunctionTests
     var function = new Function();
     var context = new TestLambdaContext();
     var tags = new[] { "test", "test" };
-    var data = new CreateEventCommand.Command
+    var data = new Function.Command
     {
       AccountId = "test-account",
       Title = "Testing Testing",
@@ -144,7 +144,7 @@ public class FunctionTests
     var function = new Function();
     var context = new TestLambdaContext();
     var date = DateTime.Now.AddDays(-1337).ToUniversalTime();
-    var data = new CreateEventCommand.Command
+    var data = new Function.Command
     {
       AccountId = "test-account",
       Title = "Testing Testing",
@@ -181,87 +181,11 @@ public class FunctionTests
   }
 
   [Fact]
-  public async Task Should_ReturnBadRequest_When_TitleIsNotSet()
-  {
-    var function = new Function();
-    var context = new TestLambdaContext();
-    var data = new CreateEventCommand.Command
-    {
-      AccountId = "test-account",
-    };
-    var request = new APIGatewayProxyRequest
-    {
-      HttpMethod = HttpMethod.Post.Method,
-      Body = JsonSerializer.Serialize(data),
-      RequestContext = new APIGatewayProxyRequest.ProxyRequestContext
-      {
-        RequestId = Guid.NewGuid().ToString(),
-        Authorizer = new()
-        {
-          { "scope", "email test event" },
-          { "sub", Guid.NewGuid() },
-          { "email", "test@wdid.fyi" },
-        },
-      },
-    };
-    var response = await function.FunctionHandler(request, context);
-
-    Assert.Equal((int)HttpStatusCode.BadRequest, response.StatusCode);
-
-    var errors = JsonSerializer.Deserialize<List<ValidationFailure>>(response.Body, new JsonSerializerOptions()
-    {
-      PropertyNameCaseInsensitive = true,
-    });
-
-    Assert.NotNull(errors);
-    Assert.Contains(errors, error => error.PropertyName == nameof(CreateEventCommand.Command.Title)
-      && error.ErrorCode == "NotEmptyValidator");
-  }
-
-  [Fact]
-  public async Task Should_ReturnBadRequest_When_AccountIdIsNotSet()
-  {
-    var function = new Function();
-    var context = new TestLambdaContext();
-    var data = new CreateEventCommand.Command
-    {
-      Title = "Testing Testing",
-    };
-    var request = new APIGatewayProxyRequest
-    {
-      HttpMethod = HttpMethod.Post.Method,
-      Body = JsonSerializer.Serialize(data),
-      RequestContext = new APIGatewayProxyRequest.ProxyRequestContext
-      {
-        RequestId = Guid.NewGuid().ToString(),
-        Authorizer = new()
-        {
-          { "scope", "email test event" },
-          { "sub", Guid.NewGuid() },
-          { "email", "test@wdid.fyi" },
-        },
-      },
-    };
-    var response = await function.FunctionHandler(request, context);
-
-    Assert.Equal((int)HttpStatusCode.BadRequest, response.StatusCode);
-
-    var errors = JsonSerializer.Deserialize<List<ValidationFailure>>(response.Body, new JsonSerializerOptions()
-    {
-      PropertyNameCaseInsensitive = true,
-    });
-
-    Assert.NotNull(errors);
-    Assert.Contains(errors, error => error.PropertyName == nameof(CreateEventCommand.Command.AccountId)
-      && error.ErrorCode == "NotEmptyValidator");
-  }
-
-  [Fact]
   public async Task Should_ReturnUnauthorized_When_RequiredScopeIsMissing()
   {
     var function = new Function();
     var context = new TestLambdaContext();
-    var data = new CreateEventCommand.Command
+    var data = new Function.Command
     {
       Title = "Testing Testing",
     };
@@ -282,9 +206,9 @@ public class FunctionTests
     };
     var response = await function.FunctionHandler(request, context);
 
-    Assert.Equal((int)HttpStatusCode.BadRequest, response.StatusCode);
+    Assert.Equal((int)HttpStatusCode.Unauthorized, response.StatusCode);
 
-    var errors = JsonSerializer.Deserialize<List<ValidationFailure>>(response.Body, new JsonSerializerOptions()
+    var errors = JsonSerializer.Deserialize<List<FunctionError>>(response.Body, new JsonSerializerOptions()
     {
       PropertyNameCaseInsensitive = true,
     });

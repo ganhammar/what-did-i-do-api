@@ -1,26 +1,20 @@
-﻿using System.Reflection;
+﻿using Amazon.DynamoDBv2;
+using Amazon.DynamoDBv2.DataModel;
+using Amazon.DynamoDBv2.DocumentModel;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.Serialization.SystemTextJson;
 using App.Api.Shared.Infrastructure;
 using App.Api.Shared.Models;
-using FluentValidation;
-using MediatR;
-using Microsoft.Extensions.DependencyInjection;
+using AWS.Lambda.Powertools.Logging;
 
 [assembly: LambdaSerializer(typeof(CamelCaseLambdaJsonSerializer))]
 
 namespace App.Api.ListTags;
 
-public class Function : APIGatewayProxyRequestBase
+public class Function : FunctionBase
 {
-  protected override void ConfigureServices(IServiceCollection services)
-  {
-    services.AddMediatR(Assembly.GetCallingAssembly());
-    services.AddTransient<IResponse<List<TagDto>>, Response<List<TagDto>>>();
-    services.AddTransient<IRequestHandler<ListTagsQuery.Query, IResponse<List<TagDto>>>, ListTagsQuery.QueryHandler>();
-    services.AddTransient<IValidator<ListTagsQuery.Query>, ListTagsQuery.QueryValidator>();
-  }
+  public Function() : base("event") { }
 
   protected override async Task<APIGatewayHttpApiV2ProxyResponse> Handler(
     APIGatewayProxyRequest apiGatewayProxyRequest)
@@ -31,9 +25,30 @@ public class Function : APIGatewayProxyRequestBase
 
     queryStringParameters.TryGetValue("accountid", out var accountId);
 
-    return await Respond(new ListTagsQuery.Query
-    {
-      AccountId = accountId,
-    });
+    Logger.LogInformation($"Listing tags for account {accountId}");
+
+    var client = new DynamoDBContext(new AmazonDynamoDBClient());
+    var search = client.FromQueryAsync<Tag>(
+      new()
+      {
+        KeyExpression = new Expression
+        {
+          ExpressionStatement = "PartitionKey = :partitionKey",
+          ExpressionAttributeValues = new Dictionary<string, DynamoDBEntry>
+          {
+            { ":partitionKey", TagMapper.GetPartitionKey(accountId!) },
+          },
+        },
+        BackwardSearch = true,
+      },
+      new()
+      {
+        OverrideTableName = Environment.GetEnvironmentVariable("TABLE_NAME"),
+      });
+    var tags = await search.GetRemainingAsync();
+
+    Logger.LogInformation($"Found {tags.Count} tag(s)");
+
+    return Respond(tags.Select(x => TagMapper.ToDto(x)).ToList());
   }
 }
