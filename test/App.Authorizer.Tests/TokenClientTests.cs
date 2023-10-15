@@ -222,7 +222,7 @@ public class TokenClientTest
         StatusCode = tokenIntrospectionIsSuccessful ? HttpStatusCode.OK : HttpStatusCode.BadRequest,
         Content = tokenIntrospectionIsSuccessful
           ? new StringContent(
-            $"{{\"active\":{isActiveString},\"aud\":\"{audience}\",\"token_usage\":\"{tokenUsage}\",\"sub\":\"123\",\"scope\":\"test\"}}")
+            $"{{\"active\":{isActiveString},\"aud\":\"{audience}\",\"token_usage\":\"{tokenUsage}\",\"sub\":\"123\",\"scope\":\"test\",\"exp\":{expiresIn}}}")
           : new StringContent("{\"error\":\"Invalid request\"}"),
       });
 
@@ -230,7 +230,7 @@ public class TokenClientTest
     var mockCacheEntry = new Mock<ICacheEntry>();
     object? value = tokenIsCached ? "456" : null;
     string? keyPayload = null;
-    memoryCacheMock.Setup(x => x.TryGetValue(It.IsAny<string>(), out value)).Returns(tokenIsCached);
+    memoryCacheMock.Setup(x => x.TryGetValue("INTERNAL_TOKEN", out value)).Returns(tokenIsCached);
     memoryCacheMock
       .Setup(x => x.CreateEntry(It.IsAny<object>()))
       .Callback((object k) => keyPayload = (string)k)
