@@ -16,4 +16,6 @@ public class IntrospectionResult
   public string? Scope { get; set; }
   [JsonPropertyName("email")]
   public string? Email { get; set; }
+  [JsonPropertyName("exp")]
+  public int ExpiresIn { get; set; }
 }

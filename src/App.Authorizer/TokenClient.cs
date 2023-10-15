@@ -12,7 +12,8 @@ public class TokenClient : ITokenClient
   private readonly HttpClient _httpClient;
   private readonly IMemoryCache _memoryCache;
 
-  private const string _cacheKey = "INTERNAL_TOKEN";
+  private const string InternalTokenCacheKey = "INTERNAL_TOKEN";
+  private const string ValidationResultPrefixCacheKey = "TOKEN#";
 
   public TokenClient(HttpClient httpClient, IMemoryCache memoryCache)
   {
@@ -24,6 +25,17 @@ public class TokenClient : ITokenClient
   public async Task<IntrospectionResult> Validate(AuthorizationOptions authorizationOptions, string token)
   {
     ArgumentNullException.ThrowIfNull(authorizationOptions.Issuer, nameof(AuthorizationOptions.Issuer));
+
+    if (_memoryCache.TryGetValue($"{ValidationResultPrefixCacheKey}{token}", out var result) && result != null)
+    {
+      var IntrospectionResult = JsonSerializer.Deserialize<IntrospectionResult>((string)result);
+
+      if (IntrospectionResult != default)
+      {
+        Logger.LogInformation("Token result found in cache, returning cached introspection result");
+        return IntrospectionResult;
+      }
+    }
 
     var configurationManager = new ConfigurationManager<OpenIdConnectConfiguration>(
       $"{authorizationOptions.Issuer}/.well-known/openid-configuration", new OpenIdConnectConfigurationRetriever(), _httpClient);
@@ -50,6 +62,9 @@ public class TokenClient : ITokenClient
         && introspectionResult?.Audience != default && authorizationOptions.Audiences.Contains(introspectionResult?.Audience!))
       {
         Logger.LogInformation($"Token successfully validated, result: {JsonSerializer.Serialize(introspectionResult)}");
+
+        var expiresAt = DateTimeOffset.UtcNow.AddSeconds(Convert.ToDouble(introspectionResult!.ExpiresIn - 60));
+        _memoryCache.Set($"{ValidationResultPrefixCacheKey}{token}", JsonSerializer.Serialize(introspectionResult), expiresAt);
         return introspectionResult!;
       }
 
@@ -62,7 +77,7 @@ public class TokenClient : ITokenClient
   [Tracing(SegmentName = "Get internal token for introspection")]
   private async Task<string?> GetTokenForIntrospection(AuthorizationOptions authorizationOptions, string uri)
   {
-    if (_memoryCache.TryGetValue(_cacheKey, out var token))
+    if (_memoryCache.TryGetValue(InternalTokenCacheKey, out var token))
     {
       Logger.LogInformation("Internal token found in cache, reusing");
       return token as string;
@@ -83,12 +98,11 @@ public class TokenClient : ITokenClient
 
     if (response.IsSuccessStatusCode)
     {
-      var content = await response.Content.ReadAsStringAsync();
       var contentStream = await response.Content.ReadAsStreamAsync();
       var tokenResult = await JsonSerializer.DeserializeAsync<TokenResult>(contentStream);
 
       var expiresAt = DateTimeOffset.UtcNow.AddSeconds(Convert.ToDouble(tokenResult!.ExpiresIn - 60));
-      _memoryCache.Set(_cacheKey, tokenResult.AccessToken, expiresAt);
+      _memoryCache.Set(InternalTokenCacheKey, tokenResult.AccessToken, expiresAt);
 
       Logger.LogInformation($"Internal token fetched, cached until {expiresAt}");
 
