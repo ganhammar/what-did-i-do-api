@@ -42,8 +42,6 @@ public class Function
   public async Task<APIGatewayCustomAuthorizerResponse> FunctionHandler(
     APIGatewayCustomAuthorizerRequest request, ILambdaContext _)
   {
-    AppendLookup(request.RequestContext.RequestId);
-
     var headers = new Dictionary<string, string>(request.Headers, StringComparer.OrdinalIgnoreCase);
 
     headers.TryGetValue("authorization", out var token);
@@ -86,14 +84,5 @@ public class Function
         { "email", result.Email },
       },
     };
-  }
-
-  private void AppendLookup(string lookupId)
-  {
-    var lookupInfo = new Dictionary<string, object>()
-    {
-      { "LookupInfo", new Dictionary<string, object>{{ "LookupId", lookupId }} },
-    };
-    Logger.AppendKeys(lookupInfo);
   }
 }

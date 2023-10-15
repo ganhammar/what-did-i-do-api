@@ -16,8 +16,6 @@
     <AWSLambdaPowertoolsTracingVersion>1.3.2</AWSLambdaPowertoolsTracingVersion>
     <AWSSDKDynamoDBv2Version>3.7.203.2</AWSSDKDynamoDBv2Version>
     <AWSSDKExtensionsNETCoreSetupVersion>3.7.7</AWSSDKExtensionsNETCoreSetupVersion>
-    <AWSXRayRecorderCoreVersion>2.14.0</AWSXRayRecorderCoreVersion>
-    <AWSXRayRecorderHandlersAwsSdkVersion>2.12.0</AWSXRayRecorderHandlersAwsSdkVersion>
     <ConstructsVersion>10.3.0</ConstructsVersion>
     <CoverletMsbuildVersion>6.0.0</CoverletMsbuildVersion>
     <MicrosoftExtensionsConfigurationBinderVersion>7.0.4</MicrosoftExtensionsConfigurationBinderVersion>

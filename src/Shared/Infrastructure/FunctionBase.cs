@@ -2,8 +2,6 @@
 using System.Text.Json;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
-using Amazon.XRay.Recorder.Core;
-using Amazon.XRay.Recorder.Handlers.AwsSdk;
 using AWS.Lambda.Powertools.Logging;
 using AWS.Lambda.Powertools.Tracing;
 
@@ -43,15 +41,8 @@ public abstract class FunctionBase
   [Tracing(CaptureMode = TracingCaptureMode.ResponseAndError)]
   public async Task<APIGatewayHttpApiV2ProxyResponse> FunctionHandler(
     APIGatewayProxyRequest apiGatewayProxyRequest,
-    ILambdaContext context)
+    ILambdaContext _)
   {
-    AWSSDKHandler.RegisterXRayForAllServices();
-#if DEBUG
-    AWSXRayRecorder.Instance.XRayOptions.IsXRayTracingDisabled = true;
-#endif
-
-    AppendLookup(apiGatewayProxyRequest);
-
     if (!HasRequiredScopes(apiGatewayProxyRequest))
     {
       return new()
@@ -131,15 +122,5 @@ public abstract class FunctionBase
     }
 
     return true;
-  }
-
-  private void AppendLookup(APIGatewayProxyRequest apiGatewayProxyRequest)
-  {
-    var requestContextRequestId = apiGatewayProxyRequest.RequestContext.RequestId;
-    var lookupInfo = new Dictionary<string, object>()
-    {
-      { "LookupInfo", new Dictionary<string, object>{{ "LookupId", requestContextRequestId }} },
-    };
-    Logger.AppendKeys(lookupInfo);
   }
 }

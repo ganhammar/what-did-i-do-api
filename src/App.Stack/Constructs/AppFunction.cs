@@ -17,6 +17,7 @@ public class AppFunction : Function
       Timeout = Duration.Minutes(1),
       MemorySize = props.MemorySize,
       LogRetention = RetentionDays.ONE_DAY,
+      Tracing = Tracing.ACTIVE,
       Environment = new Dictionary<string, string>
       {
         { "TABLE_NAME", props.TableName ?? "" },
