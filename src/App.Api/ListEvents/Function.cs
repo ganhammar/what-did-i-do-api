@@ -11,6 +11,7 @@ using App.Api.Shared.Extensions;
 using App.Api.Shared.Infrastructure;
 using App.Api.Shared.Models;
 using AWS.Lambda.Powertools.Logging;
+using AWS.Lambda.Powertools.Tracing;
 
 [assembly: LambdaSerializer(typeof(CamelCaseLambdaJsonSerializer))]
 
@@ -62,39 +63,10 @@ public class Function : FunctionBase
 
     if (request.Tag != default)
     {
-      return await FilterByTag(request, fromDate, toDate);
+      return await ListEventsByTag(request, fromDate, toDate);
     }
 
-    Logger.LogInformation($"Listing Events between {fromDate:o} and {toDate:o} for account {request.AccountId}");
-
-    var query = await _database.QueryAsync(new()
-    {
-      KeyConditionExpression = "PartitionKey = :partitionKey AND SortKey BETWEEN :fromDate AND :toDate",
-      ExpressionAttributeValues = new Dictionary<string, AttributeValue>
-      {
-        { ":partitionKey", new(EventMapper.GetPartitionKey(request.AccountId!)) },
-        { ":fromDate", new(fromDate.ToUniversalString()) },
-        { ":toDate", new(toDate.ToUniversalString()) },
-      },
-      Limit = request.Limit,
-      ScanIndexForward = false,
-      TableName = Environment.GetEnvironmentVariable("TABLE_NAME"),
-      ExclusiveStartKey = FromBase64(request.PaginationToken),
-    });
-
-    var events = query.Items.Select(x =>
-    {
-      var document = Document.FromAttributeMap(x);
-      return _client.FromDocument<Event>(document);
-    });
-
-    Logger.LogInformation($"Found {events.Count()} Event(s)");
-
-    return Respond(new Result()
-    {
-      PaginationToken = ToBase64(query.LastEvaluatedKey),
-      Items = events.Select(x => EventMapper.ToDto(x)).ToList(),
-    });
+    return await ListEvents(request, fromDate, toDate);
   }
 
   private Query ParseRequest(APIGatewayProxyRequest apiGatewayProxyRequest)
@@ -174,7 +146,8 @@ public class Function : FunctionBase
     return default;
   }
 
-  private async Task<APIGatewayHttpApiV2ProxyResponse> FilterByTag(
+  [Tracing(SegmentName = "List events by tag")]
+  private async Task<APIGatewayHttpApiV2ProxyResponse> ListEventsByTag(
     Query request, DateTime fromDate, DateTime toDate)
   {
     Logger.LogInformation($"Listing Events with the tag {request.Tag} between {fromDate:o} and {toDate:o} for account {request.AccountId}");
@@ -224,6 +197,42 @@ public class Function : FunctionBase
     {
       Items = batch.Results.Select(x => EventMapper.ToDto(x)).ToList(),
       PaginationToken = ToBase64(query.LastEvaluatedKey),
+    });
+  }
+
+  [Tracing(SegmentName = "List events")]
+  private async Task<APIGatewayHttpApiV2ProxyResponse> ListEvents(
+    Query request, DateTime fromDate, DateTime toDate)
+  {
+    Logger.LogInformation($"Listing Events between {fromDate:o} and {toDate:o} for account {request.AccountId}");
+
+    var query = await _database.QueryAsync(new()
+    {
+      KeyConditionExpression = "PartitionKey = :partitionKey AND SortKey BETWEEN :fromDate AND :toDate",
+      ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+      {
+        { ":partitionKey", new(EventMapper.GetPartitionKey(request.AccountId!)) },
+        { ":fromDate", new(fromDate.ToUniversalString()) },
+        { ":toDate", new(toDate.ToUniversalString()) },
+      },
+      Limit = request.Limit,
+      ScanIndexForward = false,
+      TableName = Environment.GetEnvironmentVariable("TABLE_NAME"),
+      ExclusiveStartKey = FromBase64(request.PaginationToken),
+    });
+
+    var events = query.Items.Select(x =>
+    {
+      var document = Document.FromAttributeMap(x);
+      return _client.FromDocument<Event>(document);
+    });
+
+    Logger.LogInformation($"Found {events.Count()} Event(s)");
+
+    return Respond(new Result()
+    {
+      PaginationToken = ToBase64(query.LastEvaluatedKey),
+      Items = events.Select(x => EventMapper.ToDto(x)).ToList(),
     });
   }
 

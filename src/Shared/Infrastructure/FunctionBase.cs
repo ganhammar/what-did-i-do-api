@@ -5,6 +5,7 @@ using Amazon.Lambda.Core;
 using Amazon.XRay.Recorder.Core;
 using Amazon.XRay.Recorder.Handlers.AwsSdk;
 using AWS.Lambda.Powertools.Logging;
+using AWS.Lambda.Powertools.Tracing;
 
 namespace App.Api.Shared.Infrastructure;
 
@@ -39,6 +40,7 @@ public abstract class FunctionBase
   protected abstract Task<APIGatewayHttpApiV2ProxyResponse> Handler(APIGatewayProxyRequest apiGatewayProxyRequest);
 
   [Logging(LogEvent = true)]
+  [Tracing(CaptureMode = TracingCaptureMode.ResponseAndError)]
   public async Task<APIGatewayHttpApiV2ProxyResponse> FunctionHandler(
     APIGatewayProxyRequest apiGatewayProxyRequest,
     ILambdaContext context)

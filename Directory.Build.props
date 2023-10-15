@@ -5,28 +5,21 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <AmazonAspNetCoreDataProtectionSSMVersion>3.1.1</AmazonAspNetCoreDataProtectionSSMVersion>
-    <AmazonExtensionsConfigurationSystemsManagerVersion>5.1.0</AmazonExtensionsConfigurationSystemsManagerVersion>
-    <AmazonCDKLibVersion>2.87.0</AmazonCDKLibVersion>
+    <AmazonExtensionsConfigurationSystemsManagerVersion>6.0.0</AmazonExtensionsConfigurationSystemsManagerVersion>
+    <AmazonCDKLibVersion>2.101.0</AmazonCDKLibVersion>
     <AmazonLambdaAspNetCoreServerVersion>8.1.0</AmazonLambdaAspNetCoreServerVersion>
     <AmazonLambdaCoreVersion>2.1.0</AmazonLambdaCoreVersion>
     <AmazonLambdaAPIGatewayEventsVersion>2.6.0</AmazonLambdaAPIGatewayEventsVersion>
     <AmazonLambdaSerializationSystemTextJsonVersion>2.3.1</AmazonLambdaSerializationSystemTextJsonVersion>
     <AmazonLambdaTestUtilitiesVersion>2.0.0</AmazonLambdaTestUtilitiesVersion>
-    <AspNetCoreIdentityAmazonDynamoDBVersion>1.0.1</AspNetCoreIdentityAmazonDynamoDBVersion>
-    <AWSLambdaPowertoolsLoggingVersion>1.1.1</AWSLambdaPowertoolsLoggingVersion>
-    <AWSSDKDynamoDBv2Version>3.7.105.5</AWSSDKDynamoDBv2Version>
+    <AWSLambdaPowertoolsLoggingVersion>1.3.2</AWSLambdaPowertoolsLoggingVersion>
+    <AWSLambdaPowertoolsTracingVersion>1.3.2</AWSLambdaPowertoolsTracingVersion>
+    <AWSSDKDynamoDBv2Version>3.7.203.2</AWSSDKDynamoDBv2Version>
     <AWSSDKExtensionsNETCoreSetupVersion>3.7.7</AWSSDKExtensionsNETCoreSetupVersion>
-    <AWSSDKSimpleEmailVersion>3.7.100.152</AWSSDKSimpleEmailVersion>
     <AWSXRayRecorderCoreVersion>2.14.0</AWSXRayRecorderCoreVersion>
     <AWSXRayRecorderHandlersAwsSdkVersion>2.12.0</AWSXRayRecorderHandlersAwsSdkVersion>
-    <ConstructsVersion>10.2.69</ConstructsVersion>
-    <CommunityOpenIddictAmazonDynamoDBVersion>1.0.2</CommunityOpenIddictAmazonDynamoDBVersion>
+    <ConstructsVersion>10.3.0</ConstructsVersion>
     <CoverletMsbuildVersion>6.0.0</CoverletMsbuildVersion>
-    <FluentValidationVersion>11.6.0</FluentValidationVersion>
-    <MediatRVersion>11.1.0</MediatRVersion>
-    <MediatRExtensionsMicrosoftDependencyInjectionVersion>11.1.0</MediatRExtensionsMicrosoftDependencyInjectionVersion>
-    <MicrosoftAspNetCoreTestHostVersion>6.0.19</MicrosoftAspNetCoreTestHostVersion>
     <MicrosoftExtensionsConfigurationBinderVersion>7.0.4</MicrosoftExtensionsConfigurationBinderVersion>
     <MicrosoftExtensionsCachingMemoryVersion>7.0.0</MicrosoftExtensionsCachingMemoryVersion>
     <MicrosoftExtensionsConfigurationEnvironmentVariablesVersion>7.0.0</MicrosoftExtensionsConfigurationEnvironmentVariablesVersion>
@@ -34,19 +27,13 @@
     <MicrosoftExtensionsConfigurationJsonVersion>7.0.0</MicrosoftExtensionsConfigurationJsonVersion>
     <MicrosoftExtensionsDependencyInjectionVersion>7.0.0</MicrosoftExtensionsDependencyInjectionVersion>
     <MicrosoftExtensionsHttpVersion>7.0.0</MicrosoftExtensionsHttpVersion>
-    <MicrosoftExtensionsOptionsConfigurationExtensionsVersion>7.0.0</MicrosoftExtensionsOptionsConfigurationExtensionsVersion>
-    <MicrosoftIdentityModelProtocolsVersion>6.31.0</MicrosoftIdentityModelProtocolsVersion>
-    <MicrosoftIdentityModelProtocolsVersionOpenIdConnect>6.31.0</MicrosoftIdentityModelProtocolsVersionOpenIdConnect>
-    <MicrosoftNETTestSdkVersion>17.6.3</MicrosoftNETTestSdkVersion>
+    <MicrosoftIdentityModelProtocolsVersion>7.0.2</MicrosoftIdentityModelProtocolsVersion>
+    <MicrosoftIdentityModelProtocolsVersionOpenIdConnect>7.0.2</MicrosoftIdentityModelProtocolsVersionOpenIdConnect>
+    <MicrosoftNETTestSdkVersion>17.7.2</MicrosoftNETTestSdkVersion>
     <MoqVersion>4.18.4</MoqVersion>
-    <OdeToCodeAddFeatureFoldersVersion>2.0.3</OdeToCodeAddFeatureFoldersVersion>
-    <OpenIddictAspNetCoreVersion>4.5.0</OpenIddictAspNetCoreVersion>
-    <OpenIddictCoreVersion>4.5.0</OpenIddictCoreVersion>
-    <ScrutorVersion>4.2.2</ScrutorVersion>
-    <SystemIdentityModelTokensJwtVersion>6.31.0</SystemIdentityModelTokensJwtVersion>
-    <SwashbuckleAspNetCoreVersion>6.5.0</SwashbuckleAspNetCoreVersion>
-    <XunitVersion>2.5.0</XunitVersion>
-    <XunitRunnerVisualstudioVersion>2.5.0</XunitRunnerVisualstudioVersion>
+    <SystemIdentityModelTokensJwtVersion>7.0.2</SystemIdentityModelTokensJwtVersion>
+    <XunitVersion>2.5.2</XunitVersion>
+    <XunitRunnerVisualstudioVersion>2.5.3</XunitRunnerVisualstudioVersion>
   </PropertyGroup>
 
 </Project>

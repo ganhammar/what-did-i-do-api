@@ -16,6 +16,8 @@
       Version="$(AmazonLambdaSerializationSystemTextJsonVersion)" />
     <PackageReference Include="AWS.Lambda.Powertools.Logging"
       Version="$(AWSLambdaPowertoolsLoggingVersion)" />
+    <PackageReference Include="AWS.Lambda.Powertools.Tracing"
+      Version="$(AWSLambdaPowertoolsTracingVersion)" />
   </ItemGroup>
 
   <ItemGroup>
