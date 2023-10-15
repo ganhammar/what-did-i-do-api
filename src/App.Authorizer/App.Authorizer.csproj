@@ -18,6 +18,8 @@
       Version="$(AmazonLambdaSerializationSystemTextJsonVersion)" />
     <PackageReference Include="AWS.Lambda.Powertools.Logging"
       Version="$(AWSLambdaPowertoolsLoggingVersion)" />
+    <PackageReference Include="AWS.Lambda.Powertools.Tracing"
+      Version="$(AWSLambdaPowertoolsTracingVersion)" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory"
       Version="$(MicrosoftExtensionsCachingMemoryVersion)" />
     <PackageReference Include="Microsoft.Extensions.Http"

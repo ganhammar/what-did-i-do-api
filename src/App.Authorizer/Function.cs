@@ -2,6 +2,7 @@
 using Amazon.Lambda.Core;
 using Amazon.Lambda.Serialization.SystemTextJson;
 using AWS.Lambda.Powertools.Logging;
+using AWS.Lambda.Powertools.Tracing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -37,6 +38,7 @@ public class Function
   }
 
   [Logging(LogEvent = true)]
+  [Tracing(CaptureMode = TracingCaptureMode.ResponseAndError)]
   public async Task<APIGatewayCustomAuthorizerResponse> FunctionHandler(
     APIGatewayCustomAuthorizerRequest request, ILambdaContext _)
   {

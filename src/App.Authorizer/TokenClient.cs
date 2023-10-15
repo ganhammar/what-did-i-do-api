@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using AWS.Lambda.Powertools.Logging;
+using AWS.Lambda.Powertools.Tracing;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
@@ -19,6 +20,7 @@ public class TokenClient : ITokenClient
     _memoryCache = memoryCache;
   }
 
+  [Tracing(SegmentName = "Validate token")]
   public async Task<IntrospectionResult> Validate(AuthorizationOptions authorizationOptions, string token)
   {
     ArgumentNullException.ThrowIfNull(authorizationOptions.Issuer, nameof(AuthorizationOptions.Issuer));
@@ -57,6 +59,7 @@ public class TokenClient : ITokenClient
     throw new UnauthorizedAccessException("Unauthorized");
   }
 
+  [Tracing(SegmentName = "Get internal token for introspection")]
   private async Task<string?> GetTokenForIntrospection(AuthorizationOptions authorizationOptions, string uri)
   {
     if (_memoryCache.TryGetValue(_cacheKey, out var token))
