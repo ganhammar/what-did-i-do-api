@@ -1,6 +1,8 @@
 ﻿using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.Serialization.SystemTextJson;
+using Amazon.XRay.Recorder.Core;
+using Amazon.XRay.Recorder.Handlers.AwsSdk;
 using AWS.Lambda.Powertools.Logging;
 using AWS.Lambda.Powertools.Tracing;
 using Microsoft.Extensions.Configuration;
@@ -42,6 +44,11 @@ public class Function
   public async Task<APIGatewayCustomAuthorizerResponse> FunctionHandler(
     APIGatewayCustomAuthorizerRequest request, ILambdaContext _)
   {
+    AWSSDKHandler.RegisterXRayForAllServices();
+#if DEBUG
+    AWSXRayRecorder.Instance.XRayOptions.IsXRayTracingDisabled = true;
+#endif
+
     var headers = new Dictionary<string, string>(request.Headers, StringComparer.OrdinalIgnoreCase);
 
     headers.TryGetValue("authorization", out var token);

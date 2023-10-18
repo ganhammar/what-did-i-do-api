@@ -20,6 +20,9 @@
       Version="$(AWSLambdaPowertoolsLoggingVersion)" />
     <PackageReference Include="AWS.Lambda.Powertools.Tracing"
       Version="$(AWSLambdaPowertoolsTracingVersion)" />
+    <PackageReference Include="AWSXRayRecorder.Core" Version="$(AWSXRayRecorderCoreVersion)" />
+    <PackageReference Include="AWSXRayRecorder.Handlers.AwsSdk"
+      Version="$(AWSXRayRecorderHandlersAwsSdkVersion)" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory"
       Version="$(MicrosoftExtensionsCachingMemoryVersion)" />
     <PackageReference Include="Microsoft.Extensions.Http"

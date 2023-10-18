@@ -2,6 +2,8 @@
 using System.Text.Json;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
+using Amazon.XRay.Recorder.Core;
+using Amazon.XRay.Recorder.Handlers.AwsSdk;
 using AWS.Lambda.Powertools.Logging;
 using AWS.Lambda.Powertools.Tracing;
 
@@ -43,6 +45,11 @@ public abstract class FunctionBase
     APIGatewayProxyRequest apiGatewayProxyRequest,
     ILambdaContext _)
   {
+    AWSSDKHandler.RegisterXRayForAllServices();
+#if DEBUG
+    AWSXRayRecorder.Instance.XRayOptions.IsXRayTracingDisabled = true;
+#endif
+
     if (!HasRequiredScopes(apiGatewayProxyRequest))
     {
       return new()
