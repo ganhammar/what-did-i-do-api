@@ -82,7 +82,7 @@ public class AppStack : Stack
     {
       Handler = authorizerFunction,
       IdentitySources = new[] { IdentitySource.Header("authorization") },
-      ResultsCacheTtl = Duration.Seconds(0),
+      ResultsCacheTtl = Duration.Minutes(5),
     });
   }
 

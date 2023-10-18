@@ -24,21 +24,6 @@ public class TokenClientTest
   }
 
   [Fact]
-  public async Task Should_BeSuccessfulResponse_When_ResultIsCached()
-  {
-    var tokenClient = GetTokenClient(tokenResultIsCached: true);
-    var result = await tokenClient.Validate(new()
-    {
-      Audiences = new() { "test" },
-      ClientId = "test",
-      ClientSecret = "test",
-      Issuer = "https://test.com",
-    }, "123");
-
-    Assert.True(result.Active);
-  }
-
-  [Fact]
   public async Task Should_BeSuccessfulResponse_When_TokenIsCached()
   {
     var tokenClient = GetTokenClient(true);
@@ -182,8 +167,7 @@ public class TokenClientTest
     bool tokenIntrospectionIsSuccessful = true,
     bool isActive = true,
     string tokenUsage = "access_token",
-    string audience = "test",
-    bool tokenResultIsCached = false)
+    string audience = "test")
   {
     var expiresIn = 60 * 30;
     var httpMessageHandlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
@@ -242,17 +226,6 @@ public class TokenClientTest
           : new StringContent("{\"error\":\"Invalid request\"}"),
       });
 
-    var introspectionResult = new IntrospectionResult
-    {
-      Active = true,
-      Audience = audience,
-      TokenUsage = tokenUsage,
-      Subject = "123",
-      Email = "test@wdid.fyi",
-      Scope = "test",
-      ExpiresIn = expiresIn,
-    };
-
     var memoryCacheMock = new Mock<IMemoryCache>();
     var mockCacheEntry = new Mock<ICacheEntry>();
     object? value = tokenIsCached ? "456" : null;
@@ -262,11 +235,6 @@ public class TokenClientTest
       .Setup(x => x.CreateEntry(It.IsAny<object>()))
       .Callback((object k) => keyPayload = (string)k)
       .Returns(mockCacheEntry.Object);
-
-    if (tokenResultIsCached)
-    {
-      memoryCacheMock.Setup(x => x.TryGetValue("TOKEN#123", out value)).Returns(tokenIsCached);
-    }
 
     return new TokenClient(new HttpClient(httpMessageHandlerMock.Object), memoryCacheMock.Object);
   }
