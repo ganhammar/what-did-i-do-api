@@ -22,7 +22,7 @@ public class Function
   {
     services.Configure<AuthorizationOptions>(Configuration.GetSection(nameof(AuthorizationOptions)));
     services.AddMemoryCache();
-    services.AddHttpClient<ITokenClient, TokenClient>();
+    services.AddSingleton<ITokenClient, TokenClient>();
   }
 
   public Function()
