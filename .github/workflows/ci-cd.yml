@@ -118,8 +118,10 @@ jobs:
       - name: CDK Bootstrap
         run: cdk bootstrap
         env:
-          Authorizer__ClientSecret: ${{ secrets.CLIENT_AUTHORIZER_SECRET }}
+          Authorizer__SigningCertificate: ${{ secrets.SIGNING_CERTIFICATE }}
+          Authorizer__EncryptionCertificate: ${{ secrets.ENCRYPTION_CERTIFICATE }}
       - name: CDK Deploy
         run: cdk deploy --require-approval never --all
         env:
-          Authorizer__ClientSecret: ${{ secrets.CLIENT_AUTHORIZER_SECRET }}
+          Authorizer__SigningCertificate: ${{ secrets.SIGNING_CERTIFICATE }}
+          Authorizer__EncryptionCertificate: ${{ secrets.ENCRYPTION_CERTIFICATE }}

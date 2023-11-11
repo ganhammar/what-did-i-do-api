@@ -63,11 +63,6 @@ public class Function
 
     var result = await tokenClient.Validate(options.CurrentValue, token);
 
-    if (result.Active == false)
-    {
-      throw new UnauthorizedAccessException("Unauthorized");
-    }
-
     return new()
     {
       PrincipalID = "user",

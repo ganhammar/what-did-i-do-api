@@ -25,7 +25,7 @@ public class FunctionTests
       },
     };
     var context = new TestLambdaContext();
-    var function = GetFunction(true);
+    var function = GetFunction();
 
     var result = await function.FunctionHandler(request, context);
 
@@ -44,34 +44,13 @@ public class FunctionTests
       },
     };
     var context = new TestLambdaContext();
-    var function = GetFunction(true);
+    var function = GetFunction();
 
     await Assert.ThrowsAsync<UnauthorizedAccessException>(
       async () => await function.FunctionHandler(request, context));
   }
 
-  [Fact]
-  public async Task Should_Throw_When_TokenIsNotActive()
-  {
-    var request = new APIGatewayCustomAuthorizerRequest
-    {
-      Headers = new Dictionary<string, string>
-      {
-        { "authorization", "1234" },
-      },
-      RequestContext = new APIGatewayProxyRequest.ProxyRequestContext
-      {
-        RequestId = Guid.NewGuid().ToString(),
-      },
-    };
-    var context = new TestLambdaContext();
-    var function = GetFunction(false);
-
-    await Assert.ThrowsAsync<UnauthorizedAccessException>(
-      async () => await function.FunctionHandler(request, context));
-  }
-
-  private Function GetFunction(bool isActive)
+  private static Function GetFunction()
   {
     var function = new Mock<Function>();
     function
@@ -84,12 +63,9 @@ public class FunctionTests
           .Setup(x => x.Validate(It.IsAny<AuthorizationOptions>(), It.IsAny<string>()))
           .Returns(Task.FromResult(new IntrospectionResult
           {
-            Active = isActive,
             Scope = "test",
-            Audience = "test",
             Subject = "123",
             Email = "test@wdid.fyi",
-            TokenUsage = "access_token",
           }));
         services.AddSingleton(mockedTokenClient.Object);
 

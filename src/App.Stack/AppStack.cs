@@ -12,7 +12,7 @@ namespace AppStack;
 
 public class AppStack : Stack
 {
-  private const string _tableName = "what-did-i-do";
+  private const string TableName = "what-did-i-do";
   private readonly IConfiguration _configuration;
 
   internal AppStack(Construct scope, string id, IStackProps props, IConfiguration configuration)
@@ -23,7 +23,7 @@ public class AppStack : Stack
     // DynamoDB
     var applicationTable = Table.FromTableAttributes(this, "ApplicationTable", new TableAttributes
     {
-      TableArn = $"arn:aws:dynamodb:{Region}:{Account}:table/{_tableName}",
+      TableArn = $"arn:aws:dynamodb:{Region}:{Account}:table/{TableName}",
       GrantIndexPermissions = true,
     });
 
@@ -57,7 +57,7 @@ public class AppStack : Stack
     HandleTagResource(tagResource, api, applicationTable, authorizer);
 
     // Output
-    new CfnOutput(this, "APIGWEndpoint", new CfnOutputProps
+    _ = new CfnOutput(this, "APIGWEndpoint", new CfnOutputProps
     {
       Value = api.Url,
     });
@@ -65,10 +65,16 @@ public class AppStack : Stack
 
   private RequestAuthorizer CreateAuthorizerFunction()
   {
-    new StringParameter(this, "AuthorizerClientSecretParameter", new StringParameterProps
+    _ = new StringParameter(this, "AuthorizerSigningCertificateParameter", new StringParameterProps
     {
-      ParameterName = "/WDID/Authorizer/AuthorizationOptions/ClientSecret",
-      StringValue = _configuration.GetSection("Authorizer").GetValue<string>("ClientSecret")!,
+      ParameterName = "/WDID/Authorizer/AuthorizationOptions/SigningCertificate",
+      StringValue = _configuration.GetSection("Authorizer").GetValue<string>("SigningCertificate")!,
+      Tier = ParameterTier.STANDARD,
+    });
+    _ = new StringParameter(this, "AuthorizerEncryptionCertificateParameter", new StringParameterProps
+    {
+      ParameterName = "/WDID/Authorizer/AuthorizationOptions/EncryptionCertificate",
+      StringValue = _configuration.GetSection("Authorizer").GetValue<string>("EncryptionCertificate")!,
       Tier = ParameterTier.STANDARD,
     });
 
@@ -120,7 +126,7 @@ public class AppStack : Stack
     // Create
     var createAccountFunction = new AppFunction(this, "CreateAccount", new AppFunction.Props(
       "CreateAccount::App.Api.CreateAccount.Function::FunctionHandler",
-      _tableName
+      TableName
     ));
     applicationTable.GrantReadWriteData(createAccountFunction);
     accountResource.AddMethod("POST", new LambdaIntegration(createAccountFunction), new MethodOptions
@@ -141,7 +147,7 @@ public class AppStack : Stack
     // List
     var listAccountsFunction = new AppFunction(this, "ListAccounts", new AppFunction.Props(
       "ListAccounts::App.Api.ListAccounts.Function::FunctionHandler",
-      _tableName
+      TableName
     ));
     applicationTable.GrantReadWriteData(listAccountsFunction);
     accountResource.AddMethod("GET", new LambdaIntegration(listAccountsFunction), new MethodOptions
@@ -160,7 +166,7 @@ public class AppStack : Stack
     // Create
     var createEventFunction = new AppFunction(this, "CreateEvent", new AppFunction.Props(
       "CreateEvent::App.Api.CreateEvent.Function::FunctionHandler",
-      _tableName
+      TableName
     ));
     applicationTable.GrantReadWriteData(createEventFunction);
     eventResource.AddMethod("POST", new LambdaIntegration(createEventFunction), new MethodOptions
@@ -181,7 +187,7 @@ public class AppStack : Stack
     // Delete
     var deleteEventFunction = new AppFunction(this, "DeleteEvent", new AppFunction.Props(
       "DeleteEvent::App.Api.DeleteEvent.Function::FunctionHandler",
-      _tableName
+      TableName
     ));
     applicationTable.GrantReadWriteData(deleteEventFunction);
     eventResource.AddMethod("DELETE", new LambdaIntegration(deleteEventFunction), new MethodOptions
@@ -202,7 +208,7 @@ public class AppStack : Stack
     // Edit
     var editEventFunction = new AppFunction(this, "EditEvent", new AppFunction.Props(
       "EditEvent::App.Api.EditEvent.Function::FunctionHandler",
-      _tableName
+      TableName
     ));
     applicationTable.GrantReadWriteData(editEventFunction);
     eventResource.AddMethod("PUT", new LambdaIntegration(editEventFunction), new MethodOptions
@@ -223,7 +229,7 @@ public class AppStack : Stack
     // List
     var listEventsFunction = new AppFunction(this, "ListEvents", new AppFunction.Props(
       "ListEvents::App.Api.ListEvents.Function::FunctionHandler",
-      _tableName
+      TableName
     ));
     applicationTable.GrantReadData(listEventsFunction);
     eventResource.AddMethod("GET", new LambdaIntegration(listEventsFunction), new MethodOptions
@@ -252,7 +258,7 @@ public class AppStack : Stack
     // List
     var listTagsFunction = new AppFunction(this, "ListTags", new AppFunction.Props(
       "ListTags::App.Api.ListTags.Function::FunctionHandler",
-      _tableName
+      TableName
     ));
     applicationTable.GrantReadData(listTagsFunction);
     tagResource.AddMethod("GET", new LambdaIntegration(listTagsFunction), new MethodOptions

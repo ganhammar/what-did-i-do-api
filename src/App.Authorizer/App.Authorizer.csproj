@@ -23,8 +23,6 @@
     <PackageReference Include="AWSXRayRecorder.Core" Version="$(AWSXRayRecorderCoreVersion)" />
     <PackageReference Include="AWSXRayRecorder.Handlers.AwsSdk"
       Version="$(AWSXRayRecorderHandlersAwsSdkVersion)" />
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory"
-      Version="$(MicrosoftExtensionsCachingMemoryVersion)" />
     <PackageReference Include="Microsoft.Extensions.Http"
       Version="$(MicrosoftExtensionsHttpVersion)" />
     <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions"
@@ -34,10 +32,6 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection"
       Version="$(MicrosoftExtensionsDependencyInjectionVersion)" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="7.0.0" />
-    <PackageReference Include="Microsoft.IdentityModel.Protocols"
-      Version="$(MicrosoftIdentityModelProtocolsVersion)" />
-    <PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect"
-      Version="$(MicrosoftIdentityModelProtocolsVersionOpenIdConnect)" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt"
       Version="$(SystemIdentityModelTokensJwtVersion)" />
   </ItemGroup>

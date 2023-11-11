@@ -1,100 +1,47 @@
-﻿using System.Text.Json;
+﻿using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Security.Cryptography.X509Certificates;
 using AWS.Lambda.Powertools.Logging;
 using AWS.Lambda.Powertools.Tracing;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.IdentityModel.Protocols;
-using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using Microsoft.IdentityModel.Tokens;
 
 namespace App.Authorizer;
 
 public class TokenClient : ITokenClient
 {
-  private readonly HttpClient _httpClient;
-  private readonly IMemoryCache _memoryCache;
-
-  private const string CacheKey = "INTERNAL_TOKEN";
-
-  public TokenClient(HttpClient httpClient, IMemoryCache memoryCache)
-  {
-    _httpClient = httpClient;
-    _memoryCache = memoryCache;
-  }
-
   [Tracing(SegmentName = "Validate token")]
   public async Task<IntrospectionResult> Validate(AuthorizationOptions authorizationOptions, string token)
   {
-    ArgumentNullException.ThrowIfNull(authorizationOptions.Issuer, nameof(AuthorizationOptions.Issuer));
-
-    var configurationManager = new ConfigurationManager<OpenIdConnectConfiguration>(
-      $"{authorizationOptions.Issuer}/.well-known/openid-configuration", new OpenIdConnectConfigurationRetriever(), _httpClient);
-
-    var config = await configurationManager.GetConfigurationAsync();
+    var signingCertificate = new X509Certificate2(Convert.FromBase64String(authorizationOptions.SigningCertificate!));
+    var encryptionCertificate = new X509Certificate2(Convert.FromBase64String(authorizationOptions.EncryptionCertificate!));
 
     token = token.Replace("Bearer ", "");
 
-    var introspectionToken = await GetTokenForIntrospection(authorizationOptions, config.TokenEndpoint);
-
-    var request = new HttpRequestMessage(HttpMethod.Get, $"{config.IntrospectionEndpoint}?token={token}");
-    request.Headers.Add("Authorization", $"Bearer {introspectionToken}");
-
-    var response = await _httpClient.SendAsync(request);
-
-    if (response.IsSuccessStatusCode)
+    var validationParameters = new TokenValidationParameters
     {
-      var contentStream = await response.Content.ReadAsStreamAsync();
-      var introspectionResult = await JsonSerializer.DeserializeAsync<IntrospectionResult>(contentStream);
+      TokenDecryptionKey = new X509SecurityKey(encryptionCertificate),
+      ValidateAudience = true,
+      ValidateIssuer = true,
+      IssuerSigningKey = new X509SecurityKey(signingCertificate),
+      ValidateLifetime = true,
+      ValidAudiences = authorizationOptions.Audiences,
+      ValidIssuer = authorizationOptions.Issuer,
+    };
+    var tokenHandler = new JwtSecurityTokenHandler();
 
-      ArgumentNullException.ThrowIfNull(authorizationOptions.Audiences, nameof(AuthorizationOptions.Audiences));
+    var result = await tokenHandler.ValidateTokenAsync(token, validationParameters);
 
-      if (introspectionResult?.Active == true && introspectionResult?.TokenUsage == "access_token"
-        && introspectionResult?.Audience != default && authorizationOptions.Audiences.Contains(introspectionResult?.Audience!))
-      {
-        Logger.LogInformation($"Token successfully validated, result: {JsonSerializer.Serialize(introspectionResult)}");
-
-        return introspectionResult!;
-      }
-
-      Logger.LogInformation($"Token could not be validated, result: {JsonSerializer.Serialize(introspectionResult)}");
+    if (result.IsValid == false)
+    {
+      Logger.LogError(result.Exception, "Token validation failed");
+      throw new UnauthorizedAccessException("Unauthorized");
     }
 
-    throw new UnauthorizedAccessException("Unauthorized");
-  }
-
-  [Tracing(SegmentName = "Get internal token for introspection")]
-  private async Task<string?> GetTokenForIntrospection(AuthorizationOptions authorizationOptions, string uri)
-  {
-    if (_memoryCache.TryGetValue(CacheKey, out var token))
+    return new()
     {
-      Logger.LogInformation("Internal token found in cache, reusing");
-      return token as string;
-    }
-
-    Logger.LogInformation("Internal token not found in cache, requesting");
-    ArgumentNullException.ThrowIfNull(authorizationOptions.ClientId, nameof(AuthorizationOptions.ClientId));
-    ArgumentNullException.ThrowIfNull(authorizationOptions.ClientSecret, nameof(AuthorizationOptions.ClientSecret));
-
-    var form = new FormUrlEncodedContent(new[]
-    {
-      new KeyValuePair<string, string>("client_id", authorizationOptions.ClientId!),
-      new KeyValuePair<string, string>("client_secret", authorizationOptions.ClientSecret!),
-      new KeyValuePair<string, string>("grant_type", "client_credentials"),
-    });
-
-    var response = await _httpClient.PostAsync(uri, form);
-
-    if (response.IsSuccessStatusCode)
-    {
-      var contentStream = await response.Content.ReadAsStreamAsync();
-      var tokenResult = await JsonSerializer.DeserializeAsync<TokenResult>(contentStream);
-
-      var expiresAt = DateTimeOffset.UtcNow.AddSeconds(Convert.ToDouble(tokenResult!.ExpiresIn - 60));
-      _memoryCache.Set(CacheKey, tokenResult.AccessToken, expiresAt);
-
-      Logger.LogInformation($"Internal token fetched, cached until {expiresAt}");
-
-      return tokenResult!.AccessToken!;
-    }
-
-    throw new Exception("Could not get token for introspection");
+      Email = result.ClaimsIdentity.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Email)?.Value,
+      Subject = result.ClaimsIdentity.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value,
+      Scope = result.ClaimsIdentity.Claims.FirstOrDefault(x => x.Type == "scope")?.Value,
+    };
   }
 }
