@@ -9,6 +9,8 @@ namespace App.Authorizer;
 
 public class TokenClient : ITokenClient
 {
+  public TokenClient() { }
+
   [Tracing(SegmentName = "Validate token")]
   public async Task<Result> Validate(AuthorizationOptions authorizationOptions, string token)
   {
