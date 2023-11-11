@@ -61,7 +61,7 @@ public class FunctionTests
         var mockedTokenClient = new Mock<ITokenClient>();
         mockedTokenClient
           .Setup(x => x.Validate(It.IsAny<AuthorizationOptions>(), It.IsAny<string>()))
-          .Returns(Task.FromResult(new IntrospectionResult
+          .Returns(Task.FromResult(new Result
           {
             Scope = "test",
             Subject = "123",

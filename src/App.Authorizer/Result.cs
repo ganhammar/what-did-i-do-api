@@ -2,7 +2,7 @@
 
 namespace App.Authorizer;
 
-public class IntrospectionResult
+public class Result
 {
   [JsonPropertyName("sub")]
   public string? Subject { get; set; }

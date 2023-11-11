@@ -10,7 +10,7 @@ namespace App.Authorizer;
 public class TokenClient : ITokenClient
 {
   [Tracing(SegmentName = "Validate token")]
-  public async Task<IntrospectionResult> Validate(AuthorizationOptions authorizationOptions, string token)
+  public async Task<Result> Validate(AuthorizationOptions authorizationOptions, string token)
   {
     var signingCertificate = new X509Certificate2(Convert.FromBase64String(authorizationOptions.SigningCertificate!));
     var encryptionCertificate = new X509Certificate2(Convert.FromBase64String(authorizationOptions.EncryptionCertificate!));

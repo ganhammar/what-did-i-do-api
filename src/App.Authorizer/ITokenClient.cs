@@ -2,5 +2,5 @@
 
 public interface ITokenClient
 {
-  public Task<IntrospectionResult> Validate(AuthorizationOptions authorizationOptions, string token);
+  public Task<Result> Validate(AuthorizationOptions authorizationOptions, string token);
 }
