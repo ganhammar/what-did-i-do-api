@@ -68,7 +68,7 @@ public abstract class FunctionBase
     return await Handler(apiGatewayProxyRequest);
   }
 
-  protected T? TryDeserialize<T>(APIGatewayProxyRequest apiGatewayProxyRequest)
+  protected static T? TryDeserialize<T>(APIGatewayProxyRequest apiGatewayProxyRequest)
   {
     if (string.IsNullOrEmpty(apiGatewayProxyRequest.Body))
     {
@@ -83,7 +83,7 @@ public abstract class FunctionBase
       });
   }
 
-  protected APIGatewayHttpApiV2ProxyResponse Respond<T>(T? response, bool isValid = true)
+  protected static APIGatewayHttpApiV2ProxyResponse Respond<T>(T? response, bool isValid = true)
   {
     if (response == null)
     {
@@ -98,7 +98,7 @@ public abstract class FunctionBase
     };
   }
 
-  protected APIGatewayHttpApiV2ProxyResponse Respond(bool isValid = true)
+  protected static APIGatewayHttpApiV2ProxyResponse Respond(bool isValid = true)
   {
     if (isValid == false)
     {

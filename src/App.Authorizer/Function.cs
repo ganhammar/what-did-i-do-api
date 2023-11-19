@@ -62,6 +62,8 @@ public class Function
     }
 
     var result = await tokenClient.Validate(options.CurrentValue, token);
+    var methodArnParts = request.MethodArn.Split(':');
+    var apiGatewayArnParts = methodArnParts[5].Split('/');
 
     return new()
     {
@@ -74,7 +76,9 @@ public class Function
           new()
           {
             Effect = "Allow",
-            Resource = new() { request.MethodArn },
+            Resource = new() {
+              $"{methodArnParts[0]}:{methodArnParts[1]}:{methodArnParts[2]}:{methodArnParts[3]}:{methodArnParts[4]}:{apiGatewayArnParts[0]}/*/*"
+            },
             Action = new() { "execute-api:Invoke" },
           },
         },
