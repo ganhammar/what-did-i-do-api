@@ -23,6 +23,7 @@ public class FunctionTests
       {
         RequestId = Guid.NewGuid().ToString(),
       },
+      MethodArn = "arn:aws:execute-api:us-east-1:123456789012:ymy8test7b/*/GET/api/something",
     };
     var context = new TestLambdaContext();
     var function = GetFunction();
@@ -30,6 +31,7 @@ public class FunctionTests
     var result = await function.FunctionHandler(request, context);
 
     Assert.Equal("Allow", result.PolicyDocument.Statement.First().Effect);
+    Assert.Equal("arn:aws:execute-api:us-east-1:123456789012:ymy8test7b/*/*", result.PolicyDocument.Statement.First().Resource.First());
   }
 
   [Fact]
