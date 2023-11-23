@@ -65,7 +65,7 @@ public static class AccountMapper
         Limit = 1,
       }, cancellationToken);
 
-      if (search.Count == 0)
+      if (search.Count == 1)
       {
         suffix += 1;
         key = $"{baseKey}-{suffix}";

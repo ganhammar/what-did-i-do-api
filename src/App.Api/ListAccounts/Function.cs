@@ -38,6 +38,11 @@ public class Function
   public static async Task<APIGatewayProxyResponse> FunctionHandler(
     APIGatewayProxyRequest apiGatewayProxyRequest, ILambdaContext context)
   {
+    if (!apiGatewayProxyRequest.HasRequiredScopes("account"))
+    {
+      return FunctionHelpers.UnauthorizedResponse;
+    }
+
     var client = new AmazonDynamoDBClient();
 
     var subject = apiGatewayProxyRequest.GetSubject();
@@ -59,6 +64,13 @@ public class Function
     });
 
     context.Logger.LogInformation($"User is member of {members.Count} accounts");
+
+    if (members.Count == 0)
+    {
+      return FunctionHelpers.Respond(
+        new List<AccountDto>(),
+        CustomJsonSerializerContext.Default.ListAccountDto);
+    }
 
     var items = await client.BatchGetItemAsync(new BatchGetItemRequest
     {
