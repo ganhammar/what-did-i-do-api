@@ -23,7 +23,10 @@ public class FunctionTests
     var request = new APIGatewayProxyRequest
     {
       HttpMethod = HttpMethod.Post.Method,
-      Body = JsonSerializer.Serialize(data),
+      Body = JsonSerializer.Serialize(data, new JsonSerializerOptions()
+      {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+      }),
       RequestContext = new APIGatewayProxyRequest.ProxyRequestContext
       {
         RequestId = Guid.NewGuid().ToString(),
@@ -91,7 +94,10 @@ public class FunctionTests
     var request = new APIGatewayProxyRequest
     {
       HttpMethod = HttpMethod.Post.Method,
-      Body = JsonSerializer.Serialize(data),
+      Body = JsonSerializer.Serialize(data, new JsonSerializerOptions()
+      {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+      }),
       RequestContext = new APIGatewayProxyRequest.ProxyRequestContext
       {
         RequestId = Guid.NewGuid().ToString(),
@@ -126,7 +132,10 @@ public class FunctionTests
     var request = new APIGatewayProxyRequest
     {
       HttpMethod = HttpMethod.Post.Method,
-      Body = JsonSerializer.Serialize(data),
+      Body = JsonSerializer.Serialize(data, new JsonSerializerOptions()
+      {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+      }),
       RequestContext = new APIGatewayProxyRequest.ProxyRequestContext
       {
         RequestId = Guid.NewGuid().ToString(),
@@ -162,7 +171,10 @@ public class FunctionTests
     var request = new APIGatewayProxyRequest
     {
       HttpMethod = HttpMethod.Post.Method,
-      Body = JsonSerializer.Serialize(data),
+      Body = JsonSerializer.Serialize(data, new JsonSerializerOptions()
+      {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+      }),
       RequestContext = new APIGatewayProxyRequest.ProxyRequestContext
       {
         RequestId = Guid.NewGuid().ToString(),
@@ -191,7 +203,10 @@ public class FunctionTests
     var request = new APIGatewayProxyRequest
     {
       HttpMethod = HttpMethod.Post.Method,
-      Body = JsonSerializer.Serialize(data),
+      Body = JsonSerializer.Serialize(data, new JsonSerializerOptions()
+      {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+      }),
       RequestContext = new APIGatewayProxyRequest.ProxyRequestContext
       {
         RequestId = Guid.NewGuid().ToString(),

@@ -27,7 +27,7 @@ public static class APIGatewayProxyRequestExtensions
   public static bool HasRequiredScopes(
     this APIGatewayProxyRequest apiGatewayProxyRequest, params string[] requiredScopes)
   {
-    if (requiredScopes.Length == 0)
+    if (requiredScopes.Length > 0)
     {
       if (apiGatewayProxyRequest.RequestContext.Authorizer.TryGetValue("scope", out var scopes) == false)
       {
