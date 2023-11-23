@@ -1,36 +1,38 @@
 <Project>
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
 
   <PropertyGroup>
     <AmazonExtensionsConfigurationSystemsManagerVersion>6.0.0</AmazonExtensionsConfigurationSystemsManagerVersion>
-    <AmazonCDKLibVersion>2.101.0</AmazonCDKLibVersion>
-    <AmazonLambdaAspNetCoreServerVersion>8.1.0</AmazonLambdaAspNetCoreServerVersion>
-    <AmazonLambdaCoreVersion>2.1.0</AmazonLambdaCoreVersion>
-    <AmazonLambdaAPIGatewayEventsVersion>2.6.0</AmazonLambdaAPIGatewayEventsVersion>
-    <AmazonLambdaSerializationSystemTextJsonVersion>2.3.1</AmazonLambdaSerializationSystemTextJsonVersion>
+    <AmazonCDKLibVersion>2.110.0</AmazonCDKLibVersion>
+    <AmazonLambdaCoreVersion>2.2.0</AmazonLambdaCoreVersion>
+    <AmazonLambdaAPIGatewayEventsVersion>2.7.0</AmazonLambdaAPIGatewayEventsVersion>
+    <AmazonLambdaRuntimeSupportVersion>1.10.0</AmazonLambdaRuntimeSupportVersion>
+    <AmazonLambdaSerializationSystemTextJsonVersion>2.4.0</AmazonLambdaSerializationSystemTextJsonVersion>
     <AmazonLambdaTestUtilitiesVersion>2.0.0</AmazonLambdaTestUtilitiesVersion>
-    <AWSLambdaPowertoolsLoggingVersion>1.3.2</AWSLambdaPowertoolsLoggingVersion>
+    <AWSLambdaPowertoolsLoggingVersion>1.4.4</AWSLambdaPowertoolsLoggingVersion>
     <AWSLambdaPowertoolsTracingVersion>1.3.2</AWSLambdaPowertoolsTracingVersion>
-    <AWSSDKDynamoDBv2Version>3.7.203.2</AWSSDKDynamoDBv2Version>
-    <AWSSDKExtensionsNETCoreSetupVersion>3.7.7</AWSSDKExtensionsNETCoreSetupVersion>
+    <AWSSDKSimpleSystemsManagementVersion>3.7.301.2</AWSSDKSimpleSystemsManagementVersion>
+    <AWSSDKDynamoDBv2Version>3.7.300.6</AWSSDKDynamoDBv2Version>
+    <AWSSDKExtensionsNETCoreSetupVersion>3.7.300</AWSSDKExtensionsNETCoreSetupVersion>
     <AWSXRayRecorderCoreVersion>2.14.0</AWSXRayRecorderCoreVersion>
     <AWSXRayRecorderHandlersAwsSdkVersion>2.12.0</AWSXRayRecorderHandlersAwsSdkVersion>
     <ConstructsVersion>10.3.0</ConstructsVersion>
     <CoverletMsbuildVersion>6.0.0</CoverletMsbuildVersion>
-    <MicrosoftExtensionsConfigurationBinderVersion>7.0.4</MicrosoftExtensionsConfigurationBinderVersion>
-    <MicrosoftExtensionsConfigurationEnvironmentVariablesVersion>7.0.0</MicrosoftExtensionsConfigurationEnvironmentVariablesVersion>
-    <MicrosoftExtensionsConfigurationFileExtensionsVersion>7.0.0</MicrosoftExtensionsConfigurationFileExtensionsVersion>
-    <MicrosoftExtensionsConfigurationJsonVersion>7.0.0</MicrosoftExtensionsConfigurationJsonVersion>
-    <MicrosoftExtensionsDependencyInjectionVersion>7.0.0</MicrosoftExtensionsDependencyInjectionVersion>
-    <MicrosoftExtensionsHttpVersion>7.0.0</MicrosoftExtensionsHttpVersion>
-    <MicrosoftNETTestSdkVersion>17.7.2</MicrosoftNETTestSdkVersion>
-    <MoqVersion>4.18.4</MoqVersion>
-    <SystemIdentityModelTokensJwtVersion>7.0.2</SystemIdentityModelTokensJwtVersion>
-    <XunitVersion>2.5.2</XunitVersion>
-    <XunitRunnerVisualstudioVersion>2.5.3</XunitRunnerVisualstudioVersion>
+    <MicrosoftExtensionsConfigurationBinderVersion>8.0.0</MicrosoftExtensionsConfigurationBinderVersion>
+    <MicrosoftExtensionsConfigurationEnvironmentVariablesVersion>8.0.0</MicrosoftExtensionsConfigurationEnvironmentVariablesVersion>
+    <MicrosoftExtensionsConfigurationFileExtensionsVersion>8.0.0</MicrosoftExtensionsConfigurationFileExtensionsVersion>
+    <MicrosoftExtensionsConfigurationJsonVersion>8.0.0</MicrosoftExtensionsConfigurationJsonVersion>
+    <MicrosoftExtensionsOptionsConfigurationExtensionsVersion>8.0.0</MicrosoftExtensionsOptionsConfigurationExtensionsVersion>
+    <MicrosoftExtensionsDependencyInjectionVersion>8.0.0</MicrosoftExtensionsDependencyInjectionVersion>
+    <MicrosoftExtensionsHttpVersion>8.0.0</MicrosoftExtensionsHttpVersion>
+    <MicrosoftNETTestSdkVersion>17.8.0</MicrosoftNETTestSdkVersion>
+    <MoqVersion>4.20.69</MoqVersion>
+    <SystemIdentityModelTokensJwtVersion>7.0.3</SystemIdentityModelTokensJwtVersion>
+    <XunitVersion>2.6.2</XunitVersion>
+    <XunitRunnerVisualstudioVersion>2.5.4</XunitRunnerVisualstudioVersion>
   </PropertyGroup>
 
 </Project>

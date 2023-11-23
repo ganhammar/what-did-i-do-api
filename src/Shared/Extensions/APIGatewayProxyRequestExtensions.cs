@@ -23,4 +23,23 @@ public static class APIGatewayProxyRequestExtensions
 
     return default;
   }
+
+  public static bool HasRequiredScopes(
+    this APIGatewayProxyRequest apiGatewayProxyRequest, params string[] requiredScopes)
+  {
+    if (requiredScopes.Length == 0)
+    {
+      if (apiGatewayProxyRequest.RequestContext.Authorizer.TryGetValue("scope", out var scopes) == false)
+      {
+        return false;
+      }
+
+      if (string.IsNullOrEmpty(scopes.ToString()) || requiredScopes.Except(scopes.ToString()!.Split(" ")).Any() == true)
+      {
+        return false;
+      }
+    }
+
+    return true;
+  }
 }

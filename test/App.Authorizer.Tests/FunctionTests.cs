@@ -1,9 +1,5 @@
 ﻿using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.TestUtilities;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using Moq;
-using Moq.Protected;
 using Xunit;
 
 namespace App.Authorizer.Test;
@@ -11,7 +7,7 @@ namespace App.Authorizer.Test;
 public class FunctionTests
 {
   [Fact]
-  public async Task Should_Allow_When_TokenIsValid()
+  public async Task Should_Throw_When_TokenIsInvalid()
   {
     var request = new APIGatewayCustomAuthorizerRequest
     {
@@ -23,15 +19,11 @@ public class FunctionTests
       {
         RequestId = Guid.NewGuid().ToString(),
       },
-      MethodArn = "arn:aws:execute-api:us-east-1:123456789012:ymy8test7b/*/GET/api/something",
     };
     var context = new TestLambdaContext();
-    var function = GetFunction();
 
-    var result = await function.FunctionHandler(request, context);
-
-    Assert.Equal("Allow", result.PolicyDocument.Statement.First().Effect);
-    Assert.Equal("arn:aws:execute-api:us-east-1:123456789012:ymy8test7b/*/*", result.PolicyDocument.Statement.First().Resource.First());
+    await Assert.ThrowsAsync<UnauthorizedAccessException>(
+      async () => await Function.FunctionHandler(request, context));
   }
 
   [Fact]
@@ -46,36 +38,8 @@ public class FunctionTests
       },
     };
     var context = new TestLambdaContext();
-    var function = GetFunction();
 
     await Assert.ThrowsAsync<UnauthorizedAccessException>(
-      async () => await function.FunctionHandler(request, context));
-  }
-
-  private static Function GetFunction()
-  {
-    var function = new Mock<Function>();
-    function
-      .Protected()
-      .Setup("ConfigureServices", ItExpr.IsAny<IServiceCollection>())
-      .Callback((IServiceCollection services) =>
-      {
-        var mockedTokenClient = new Mock<ITokenClient>();
-        mockedTokenClient
-          .Setup(x => x.Validate(It.IsAny<AuthorizationOptions>(), It.IsAny<string>()))
-          .Returns(Task.FromResult(new Result
-          {
-            Scope = "test",
-            Subject = "123",
-            Email = "test@wdid.fyi",
-          }));
-        services.AddSingleton(mockedTokenClient.Object);
-
-        var mockedOptions = new Mock<IOptionsMonitor<AuthorizationOptions>>();
-        mockedOptions.Setup(x => x.CurrentValue).Returns(new AuthorizationOptions());
-        services.AddSingleton(mockedOptions.Object);
-      });
-
-    return function.Object;
+      async () => await Function.FunctionHandler(request, context));
   }
 }

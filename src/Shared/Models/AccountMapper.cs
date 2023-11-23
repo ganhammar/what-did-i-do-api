@@ -1,5 +1,5 @@
-﻿using Amazon.DynamoDBv2.DataModel;
-using Amazon.DynamoDBv2.DocumentModel;
+﻿using Amazon.DynamoDBv2;
+using Amazon.DynamoDBv2.Model;
 using App.Api.Shared.Extensions;
 
 namespace App.Api.Shared.Models;
@@ -21,6 +21,21 @@ public static class AccountMapper
     Name = instance.Name,
   };
 
+  public static AccountDto ToDtoDD(Dictionary<string, AttributeValue> items) => new()
+  {
+    Id = GetId(items["PartitionKey"].S!),
+    CreateDate = DateTime.Parse(items["CreateDate"].S!),
+    Name = items["Name"].S!,
+  };
+
+  public static Dictionary<string, AttributeValue> FromDtoDD(AccountDto accountDto) => new()
+  {
+    { "PartitionKey", new AttributeValue(GetAccountId(accountDto.Id!)) },
+    { "SortKey", new AttributeValue(GetSortKey(accountDto)) },
+    { "CreateDate", new AttributeValue(accountDto.CreateDate.ToString("O")) },
+    { "Name", new AttributeValue(accountDto.Name) },
+  };
+
   public static string GetId(string partitionKey)
     => partitionKey.Split('#')[1];
 
@@ -29,7 +44,8 @@ public static class AccountMapper
 
   public static string GetSortKey(AccountDto instance) => "#";
 
-  public static async Task<string> GetUniqueId(string name, DynamoDBContext context, CancellationToken cancellationToken = default)
+  public static async Task<string> GetUniqueId(
+    string name, AmazonDynamoDBClient client, CancellationToken cancellationToken = default)
   {
     var baseKey = GetAccountId(name.UrlFriendly());
     var suffix = 0;
@@ -38,25 +54,18 @@ public static class AccountMapper
 
     while (exits)
     {
-      var search = context.FromQueryAsync<Account>(
-        new()
+      var search = await client.QueryAsync(new()
+      {
+        TableName = Environment.GetEnvironmentVariable("TABLE_NAME"),
+        KeyConditionExpression = "PartitionKey = :partitionKey",
+        ExpressionAttributeValues = new()
         {
-          KeyExpression = new Expression
-          {
-            ExpressionStatement = "PartitionKey = :partitionKey",
-            ExpressionAttributeValues = new Dictionary<string, DynamoDBEntry>
-            {
-              { ":partitionKey", key },
-            }
-          },
+          { ":partitionKey", new AttributeValue(key) },
         },
-        new()
-        {
-          OverrideTableName = Environment.GetEnvironmentVariable("TABLE_NAME"),
-        });
-      var found = await search.GetNextSetAsync(cancellationToken);
+        Limit = 1,
+      }, cancellationToken);
 
-      if (found.Any())
+      if (search.Count == 0)
       {
         suffix += 1;
         key = $"{baseKey}-{suffix}";
