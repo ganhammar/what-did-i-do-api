@@ -46,7 +46,7 @@ public class Function
     var client = new AmazonDynamoDBClient();
 
     var subject = apiGatewayProxyRequest.GetSubject();
-    ArgumentNullException.ThrowIfNull(subject, nameof(Member.Subject));
+    ArgumentNullException.ThrowIfNull(subject, nameof(MemberDto.Subject));
 
     var tableName = Environment.GetEnvironmentVariable("TABLE_NAME");
     ArgumentNullException.ThrowIfNull(tableName, nameof(tableName));
@@ -80,7 +80,7 @@ public class Function
           tableName,
           new KeysAndAttributes
           {
-            Keys = members.Items.Select(x => MemberMapper.ToDtoDD(x).AccountId).Distinct().Select(accountId =>
+            Keys = members.Items.Select(x => MemberMapper.ToDto(x).AccountId).Distinct().Select(accountId =>
             {
               var account = AccountMapper.FromDto(new AccountDto
               {
@@ -88,8 +88,8 @@ public class Function
               });
               return new Dictionary<string, AttributeValue>
               {
-                { nameof(account.PartitionKey), new AttributeValue(account.PartitionKey) },
-                { nameof(account.SortKey), new AttributeValue(account.SortKey) },
+                { "PartitionKey", new AttributeValue(account["PartitionKey"].S!) },
+                { "SortKey", new AttributeValue(account["SortKey"].S!) },
               };
             }).ToList(),
           }
@@ -100,7 +100,7 @@ public class Function
     context.Logger.LogInformation($"Fetched {items.Responses.Count} unique accounts");
 
     return FunctionHelpers.Respond(
-      items.Responses.First().Value.Select(AccountMapper.ToDtoDD).ToList(),
+      items.Responses.First().Value.Select(AccountMapper.ToDto).ToList(),
       CustomJsonSerializerContext.Default.ListAccountDto);
   }
 }

@@ -61,7 +61,7 @@ public class Function
 
     var tableName = Environment.GetEnvironmentVariable("TABLE_NAME");
 
-    var item = AccountMapper.FromDtoDD(new AccountDto
+    var item = AccountMapper.FromDto(new AccountDto
     {
       Id = id,
       Name = request.Name,
@@ -75,7 +75,7 @@ public class Function
     ArgumentNullException.ThrowIfNull(subject, nameof(MemberDto.Subject));
     ArgumentNullException.ThrowIfNull(email, nameof(MemberDto.Email));
 
-    var member = MemberMapper.FromDtoDD(new MemberDto
+    var member = MemberMapper.FromDto(new MemberDto
     {
       AccountId = id,
       Role = Role.Owner,
@@ -86,6 +86,6 @@ public class Function
 
     await client.PutItemAsync(tableName, member);
 
-    return FunctionHelpers.Respond(AccountMapper.ToDtoDD(item), CustomJsonSerializerContext.Default.AccountDto);
+    return FunctionHelpers.Respond(AccountMapper.ToDto(item), CustomJsonSerializerContext.Default.AccountDto);
   }
 }

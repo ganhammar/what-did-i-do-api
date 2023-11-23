@@ -6,29 +6,14 @@ namespace App.Api.Shared.Models;
 
 public static class AccountMapper
 {
-  public static AccountDto ToDto(Account instance) => new()
-  {
-    Id = GetId(instance.PartitionKey!),
-    CreateDate = instance.CreateDate,
-    Name = instance.Name,
-  };
-
-  public static Account FromDto(AccountDto instance) => new()
-  {
-    PartitionKey = GetAccountId(instance.Id!),
-    SortKey = GetSortKey(instance),
-    CreateDate = instance.CreateDate,
-    Name = instance.Name,
-  };
-
-  public static AccountDto ToDtoDD(Dictionary<string, AttributeValue> items) => new()
+  public static AccountDto ToDto(Dictionary<string, AttributeValue> items) => new()
   {
     Id = GetId(items["PartitionKey"].S!),
     CreateDate = DateTime.Parse(items["CreateDate"].S!),
     Name = items["Name"].S!,
   };
 
-  public static Dictionary<string, AttributeValue> FromDtoDD(AccountDto accountDto) => new()
+  public static Dictionary<string, AttributeValue> FromDto(AccountDto accountDto) => new()
   {
     { "PartitionKey", new AttributeValue(GetAccountId(accountDto.Id!)) },
     { "SortKey", new AttributeValue(GetSortKey(accountDto)) },
@@ -42,7 +27,7 @@ public static class AccountMapper
   public static string GetAccountId(string id)
     => $"ACCOUNT#{id}";
 
-  public static string GetSortKey(AccountDto instance) => "#";
+  public static string GetSortKey(AccountDto _) => "#";
 
   public static async Task<string> GetUniqueId(
     string name, AmazonDynamoDBClient client, CancellationToken cancellationToken = default)

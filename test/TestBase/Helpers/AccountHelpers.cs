@@ -1,13 +1,13 @@
 ﻿using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
-using Amazon.DynamoDBv2.DocumentModel;
+using Amazon.DynamoDBv2.Model;
 using App.Api.Shared.Models;
 
 namespace TestBase.Helpers;
 
 public static class AccountHelpers
 {
-  public static Account CreateAccount(AccountDto accountDto)
+  public static Dictionary<string, AttributeValue> CreateAccount(AccountDto accountDto)
   {
     var tableName = Environment.GetEnvironmentVariable("TABLE_NAME");
     var item = AccountMapper.FromDto(accountDto);
@@ -21,7 +21,8 @@ public static class AccountHelpers
     return item;
   }
 
-  public static Member AddOwner(Account account, string subject, string email)
+  public static Dictionary<string, AttributeValue> AddOwner(
+    Dictionary<string, AttributeValue> account, string subject, string email)
   {
     var accountDto = AccountMapper.ToDto(account);
     var tableName = Environment.GetEnvironmentVariable("TABLE_NAME");
@@ -34,11 +35,11 @@ public static class AccountHelpers
       CreateDate = DateTime.UtcNow,
     });
     var client = new AmazonDynamoDBClient();
-    var dbContext = new DynamoDBContext(client);
-    dbContext.SaveAsync(item, new()
+    client.PutItemAsync(new()
     {
-      OverrideTableName = tableName,
-    }, CancellationToken.None).GetAwaiter().GetResult();
+      TableName = tableName,
+      Item = item,
+    }).GetAwaiter().GetResult();
 
     while (IsIndexUpdated(client, subject) == false)
     {
@@ -50,27 +51,19 @@ public static class AccountHelpers
 
   private static bool IsIndexUpdated(AmazonDynamoDBClient client, string subject)
   {
-    var context = new DynamoDBContext(client);
-    var config = new DynamoDBOperationConfig
+    var search = client.QueryAsync(new()
     {
-      OverrideTableName = Environment.GetEnvironmentVariable("TABLE_NAME"),
-    };
-    var search = context.FromQueryAsync<Member>(new()
-    {
+      TableName = Environment.GetEnvironmentVariable("TABLE_NAME"),
       IndexName = "Subject-index",
-      KeyExpression = new Expression
+      KeyConditionExpression = "Subject = :subject AND begins_with(PartitionKey, :partitionKey)",
+      ExpressionAttributeValues = new()
       {
-        ExpressionStatement = "Subject = :subject AND begins_with(PartitionKey, :partitionKey)",
-        ExpressionAttributeValues = new Dictionary<string, DynamoDBEntry>
-        {
-          { ":subject", subject },
-          { ":partitionKey", "MEMBER#" },
-        }
+        { ":subject", new AttributeValue(subject) },
+        { ":partitionKey", new AttributeValue("MEMBER#") },
       },
-    }, config);
+      Limit = 1,
+    }).GetAwaiter().GetResult();
 
-    var result = search.GetRemainingAsync().GetAwaiter().GetResult();
-
-    return result.Any();
+    return search.Count > 0;
   }
 }
