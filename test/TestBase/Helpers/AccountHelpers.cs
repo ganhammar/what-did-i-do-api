@@ -1,5 +1,4 @@
 ﻿using Amazon.DynamoDBv2;
-using Amazon.DynamoDBv2.DataModel;
 using Amazon.DynamoDBv2.Model;
 using App.Api.Shared.Models;
 
@@ -12,11 +11,11 @@ public static class AccountHelpers
     var tableName = Environment.GetEnvironmentVariable("TABLE_NAME");
     var item = AccountMapper.FromDto(accountDto);
     var client = new AmazonDynamoDBClient();
-    var dbContext = new DynamoDBContext(client);
-    dbContext.SaveAsync(item, new()
+    client.PutItemAsync(new()
     {
-      OverrideTableName = tableName,
-    }, CancellationToken.None).GetAwaiter().GetResult();
+      TableName = tableName,
+      Item = item,
+    }).GetAwaiter().GetResult();
 
     return item;
   }

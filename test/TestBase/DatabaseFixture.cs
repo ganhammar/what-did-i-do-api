@@ -16,7 +16,6 @@ public class DatabaseFixture : IDisposable
     _client = new AmazonDynamoDBClient();
 
     CreateTable().GetAwaiter().GetResult();
-    var tables = _client.ListTablesAsync().GetAwaiter().GetResult();
   }
 
   private void SetEnvironment()
@@ -30,33 +29,33 @@ public class DatabaseFixture : IDisposable
     {
       TableName = _tableName,
       BillingMode = BillingMode.PAY_PER_REQUEST,
-      KeySchema = new()
-      {
+      KeySchema =
+      [
         new("PartitionKey", KeyType.HASH),
         new("SortKey", KeyType.RANGE),
-      },
-      AttributeDefinitions = new()
-      {
+      ],
+      AttributeDefinitions =
+      [
         new("PartitionKey", ScalarAttributeType.S),
         new("SortKey", ScalarAttributeType.S),
         new("Subject", ScalarAttributeType.S),
-      },
-      GlobalSecondaryIndexes = new()
-      {
+      ],
+      GlobalSecondaryIndexes =
+      [
         new()
         {
           IndexName = "Subject-index",
-          KeySchema = new List<KeySchemaElement>
-          {
+          KeySchema =
+          [
             new KeySchemaElement("Subject", KeyType.HASH),
             new KeySchemaElement("PartitionKey", KeyType.RANGE),
-          },
+          ],
           Projection = new Projection
           {
             ProjectionType = ProjectionType.ALL,
           },
         },
-      },
+      ],
     });
 
     var created = false;
