@@ -13,6 +13,10 @@ namespace App.Api.Shared.Infrastructure;
 [JsonSerializable(typeof(CreateAccountInput))]
 [JsonSerializable(typeof(AccountDto))]
 [JsonSerializable(typeof(List<AccountDto>))]
+[JsonSerializable(typeof(List<TagDto>))]
+[JsonSerializable(typeof(EventDto))]
+[JsonSerializable(typeof(CreateEventInput))]
+[JsonSerializable(typeof(EditEventInput))]
 public partial class CustomJsonSerializerContext : JsonSerializerContext
 {
 }

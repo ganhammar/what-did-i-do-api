@@ -46,8 +46,7 @@ public class FunctionTests
       },
     };
 
-    var function = new Function();
-    var response = await function.FunctionHandler(request, context);
+    var response = await Function.FunctionHandler(request, context);
 
     Assert.Equal((int)HttpStatusCode.NoContent, response.StatusCode);
   }
@@ -87,8 +86,7 @@ public class FunctionTests
       },
     };
 
-    var function = new Function();
-    var response = await function.FunctionHandler(request, context);
+    var response = await Function.FunctionHandler(request, context);
 
     Assert.Equal((int)HttpStatusCode.NoContent, response.StatusCode);
 
@@ -118,7 +116,6 @@ public class FunctionTests
   [Fact]
   public async Task Should_ReturnBadRequest_When_InputIsNotValid()
   {
-    var function = new Function();
     var context = new TestLambdaContext();
     var request = new APIGatewayProxyRequest
     {
@@ -135,7 +132,7 @@ public class FunctionTests
         },
       },
     };
-    var response = await function.FunctionHandler(request, context);
+    var response = await Function.FunctionHandler(request, context);
 
     Assert.Equal((int)HttpStatusCode.BadRequest, response.StatusCode);
 
@@ -152,7 +149,6 @@ public class FunctionTests
   [Fact]
   public async Task Should_ReturnBadRequest_When_IdIsNotValid()
   {
-    var function = new Function();
     var context = new TestLambdaContext();
     var data = new Dictionary<string, string>
     {
@@ -173,7 +169,7 @@ public class FunctionTests
         },
       },
     };
-    var response = await function.FunctionHandler(request, context);
+    var response = await Function.FunctionHandler(request, context);
 
     Assert.Equal((int)HttpStatusCode.BadRequest, response.StatusCode);
 
@@ -197,7 +193,6 @@ public class FunctionTests
       Date = DateTime.UtcNow,
     });
 
-    var function = new Function();
     var context = new TestLambdaContext();
     var data = new Dictionary<string, string>
     {
@@ -218,7 +213,7 @@ public class FunctionTests
         },
       },
     };
-    var response = await function.FunctionHandler(request, context);
+    var response = await Function.FunctionHandler(request, context);
 
     Assert.Equal((int)HttpStatusCode.Unauthorized, response.StatusCode);
 

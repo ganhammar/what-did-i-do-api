@@ -7,7 +7,6 @@ using Amazon.Lambda.Core;
 using Amazon.Lambda.RuntimeSupport;
 using Amazon.Lambda.Serialization.SystemTextJson;
 using Amazon.SimpleSystemsManagement;
-using Amazon.XRay.Recorder.Handlers.AwsSdk;
 using Microsoft.IdentityModel.Tokens;
 
 namespace App.Authorizer;

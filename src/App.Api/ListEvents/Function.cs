@@ -53,7 +53,7 @@ public class Function : FunctionBase
 
     var validationResult = ValidateRequest(request);
 
-    if (validationResult?.Any() == true)
+    if (validationResult is not null and { Count: > 0 })
     {
       return Respond(validationResult, false);
     }
@@ -97,7 +97,7 @@ public class Function : FunctionBase
     };
   }
 
-  private List<FunctionError> ValidateRequest(Query request)
+  private static List<FunctionError> ValidateRequest(Query request)
   {
     var result = new List<FunctionError>();
 
@@ -136,7 +136,7 @@ public class Function : FunctionBase
     return result;
   }
 
-  private DateTime? TryParseDateTime(string? date)
+  private static DateTime? TryParseDateTime(string? date)
   {
     if (DateTime.TryParse(date, out var parseDate))
     {
@@ -238,7 +238,7 @@ public class Function : FunctionBase
 
   private string? ToBase64(Dictionary<string, AttributeValue> dictionary)
   {
-    if (dictionary.Any() == false)
+    if (dictionary.Count == 0)
     {
       return default;
     }

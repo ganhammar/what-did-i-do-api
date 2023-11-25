@@ -1,5 +1,5 @@
 ﻿using Amazon.DynamoDBv2;
-using Amazon.DynamoDBv2.DataModel;
+using Amazon.DynamoDBv2.Model;
 using App.Api.Shared.Models;
 
 namespace TestBase.Helpers;
@@ -10,21 +10,20 @@ public static class TagHelpers
   {
     var tableName = Environment.GetEnvironmentVariable("TABLE_NAME");
     var client = new AmazonDynamoDBClient();
-    var dbContext = new DynamoDBContext(client);
 
-    var batch = dbContext.CreateBatchWrite<Tag>(new()
+    client.BatchWriteItemAsync(new BatchWriteItemRequest()
     {
-      OverrideTableName = tableName,
-    });
-
-    foreach (var tag in tags)
-    {
-      batch.AddPutItem(TagMapper.FromDto(new()
+      RequestItems = new()
       {
-        AccountId = accountId,
-        Value = tag,
-      }));
-    }
-    batch.ExecuteAsync().GetAwaiter().GetResult();
+        [tableName!] = tags.Select(tag => new WriteRequest(new PutRequest()
+        {
+          Item = TagMapper.FromDtoDD(new()
+          {
+            AccountId = accountId,
+            Value = tag,
+          }),
+        })).ToList(),
+      },
+    }).GetAwaiter().GetResult();
   }
 }

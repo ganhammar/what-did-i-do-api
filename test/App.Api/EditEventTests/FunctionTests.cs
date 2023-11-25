@@ -22,9 +22,8 @@ public class FunctionTests
       Date = DateTime.UtcNow,
       Title = "test",
     }));
-    var function = new Function();
     var context = new TestLambdaContext();
-    var data = new Function.Command
+    var data = new EditEventInput
     {
       Id = item.Id,
       Title = "Testing Testing",
@@ -32,7 +31,10 @@ public class FunctionTests
     var request = new APIGatewayProxyRequest
     {
       HttpMethod = HttpMethod.Post.Method,
-      Body = JsonSerializer.Serialize(data),
+      Body = JsonSerializer.Serialize(data, new JsonSerializerOptions()
+      {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+      }),
       RequestContext = new APIGatewayProxyRequest.ProxyRequestContext
       {
         RequestId = Guid.NewGuid().ToString(),
@@ -44,7 +46,7 @@ public class FunctionTests
         },
       },
     };
-    var response = await function.FunctionHandler(request, context);
+    var response = await Function.FunctionHandler(request, context);
 
     Assert.Equal((int)HttpStatusCode.OK, response.StatusCode);
 
@@ -66,10 +68,9 @@ public class FunctionTests
       Date = DateTime.UtcNow,
       Title = "test",
     }));
-    var function = new Function();
     var context = new TestLambdaContext();
     var tags = new[] { "test", "testing" };
-    var data = new Function.Command
+    var data = new EditEventInput
     {
       Id = item.Id,
       Title = "Testing Testing",
@@ -78,7 +79,10 @@ public class FunctionTests
     var request = new APIGatewayProxyRequest
     {
       HttpMethod = HttpMethod.Post.Method,
-      Body = JsonSerializer.Serialize(data),
+      Body = JsonSerializer.Serialize(data, new JsonSerializerOptions()
+      {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+      }),
       RequestContext = new APIGatewayProxyRequest.ProxyRequestContext
       {
         RequestId = Guid.NewGuid().ToString(),
@@ -90,7 +94,7 @@ public class FunctionTests
         },
       },
     };
-    var response = await function.FunctionHandler(request, context);
+    var response = await Function.FunctionHandler(request, context);
 
     Assert.Equal((int)HttpStatusCode.OK, response.StatusCode);
 
@@ -114,12 +118,11 @@ public class FunctionTests
       AccountId = Guid.NewGuid().ToString(),
       Date = DateTime.UtcNow,
       Title = "test",
-      Tags = new[] { "test", "testing" },
+      Tags = ["test", "testing"],
     }));
-    var function = new Function();
     var context = new TestLambdaContext();
     var tags = new[] { "test" };
-    var data = new Function.Command
+    var data = new EditEventInput
     {
       Id = item.Id,
       Title = "Testing Testing",
@@ -128,7 +131,10 @@ public class FunctionTests
     var request = new APIGatewayProxyRequest
     {
       HttpMethod = HttpMethod.Post.Method,
-      Body = JsonSerializer.Serialize(data),
+      Body = JsonSerializer.Serialize(data, new JsonSerializerOptions()
+      {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+      }),
       RequestContext = new APIGatewayProxyRequest.ProxyRequestContext
       {
         RequestId = Guid.NewGuid().ToString(),
@@ -140,7 +146,7 @@ public class FunctionTests
         },
       },
     };
-    var response = await function.FunctionHandler(request, context);
+    var response = await Function.FunctionHandler(request, context);
 
     Assert.Equal((int)HttpStatusCode.OK, response.StatusCode);
 
@@ -158,16 +164,18 @@ public class FunctionTests
   [Fact]
   public async Task Should_ReturnUnauthorized_When_RequiredScopeIsMissing()
   {
-    var function = new Function();
     var context = new TestLambdaContext();
-    var data = new Function.Command
+    var data = new EditEventInput
     {
       Title = "Testing Testing",
     };
     var request = new APIGatewayProxyRequest
     {
       HttpMethod = HttpMethod.Post.Method,
-      Body = JsonSerializer.Serialize(data),
+      Body = JsonSerializer.Serialize(data, new JsonSerializerOptions()
+      {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+      }),
       RequestContext = new APIGatewayProxyRequest.ProxyRequestContext
       {
         RequestId = Guid.NewGuid().ToString(),
@@ -179,7 +187,7 @@ public class FunctionTests
         },
       },
     };
-    var response = await function.FunctionHandler(request, context);
+    var response = await Function.FunctionHandler(request, context);
 
     Assert.Equal((int)HttpStatusCode.Unauthorized, response.StatusCode);
 
