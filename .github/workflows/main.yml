@@ -54,6 +54,7 @@ jobs:
             App.Api/DeleteEvent
             App.Api/EditEvent
             App.Api/ListAccounts
+            App.Api/ListEvents
             App.Api/ListTags)
           for project in "${projects[@]}"
           do
