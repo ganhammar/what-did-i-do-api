@@ -54,7 +54,6 @@ jobs:
             App.Api/DeleteEvent
             App.Api/EditEvent
             App.Api/ListAccounts
-            App.Api/ListEvents
             App.Api/ListTags)
           for project in "${projects[@]}"
           do
@@ -68,19 +67,19 @@ jobs:
             cd $step_back
           done
 
-      - name: Install node
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
-      - name: Setup CDK
-        run: npm install -g aws-cdk
-      - name: CDK Bootstrap
-        run: cdk bootstrap
-        env:
-          Authorizer__SigningCertificate: ${{ secrets.SIGNING_CERTIFICATE }}
-          Authorizer__EncryptionCertificate: ${{ secrets.ENCRYPTION_CERTIFICATE }}
-      - name: CDK Deploy
-        run: cdk deploy --require-approval never --all
-        env:
-          Authorizer__SigningCertificate: ${{ secrets.SIGNING_CERTIFICATE }}
-          Authorizer__EncryptionCertificate: ${{ secrets.ENCRYPTION_CERTIFICATE }}
+      # - name: Install node
+      #   uses: actions/setup-node@v3
+      #   with:
+      #     node-version: 18
+      # - name: Setup CDK
+      #   run: npm install -g aws-cdk
+      # - name: CDK Bootstrap
+      #   run: cdk bootstrap
+      #   env:
+      #     Authorizer__SigningCertificate: ${{ secrets.SIGNING_CERTIFICATE }}
+      #     Authorizer__EncryptionCertificate: ${{ secrets.ENCRYPTION_CERTIFICATE }}
+      # - name: CDK Deploy
+      #   run: cdk deploy --require-approval never --all
+      #   env:
+      #     Authorizer__SigningCertificate: ${{ secrets.SIGNING_CERTIFICATE }}
+      #     Authorizer__EncryptionCertificate: ${{ secrets.ENCRYPTION_CERTIFICATE }}
