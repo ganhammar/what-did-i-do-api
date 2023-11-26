@@ -67,7 +67,7 @@ public class Function
     context.Logger.LogInformation($"Found {tags.Count} tag(s)");
 
     return FunctionHelpers.Respond(
-      tags.Items.Select(TagMapper.ToDtoDD).ToList(),
+      tags.Items.Select(TagMapper.ToDto).ToList(),
       CustomJsonSerializerContext.Default.ListTagDto);
   }
 }

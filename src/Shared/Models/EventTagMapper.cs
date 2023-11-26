@@ -5,30 +5,17 @@ namespace App.Api.Shared.Models;
 
 public static class EventTagMapper
 {
-  public static EventTagDto ToDtoDD(Dictionary<string, AttributeValue> instance) => new()
+  public static EventTagDto ToDto(Dictionary<string, AttributeValue> instance) => new()
   {
     AccountId = GetAccountId(instance["PartitionKey"].S),
     Value = GetValue(instance["SortKey"].S),
     Date = GetDate(instance["SortKey"].S),
   };
 
-  public static EventTagDto ToDto(EventTag instance) => new()
-  {
-    AccountId = GetAccountId(instance.PartitionKey!),
-    Value = GetValue(instance.SortKey!),
-    Date = GetDate(instance.SortKey!),
-  };
-
-  public static Dictionary<string, AttributeValue> FromDtoDD(EventTagDto instance) => new()
+  public static Dictionary<string, AttributeValue> FromDto(EventTagDto instance) => new()
   {
     { "PartitionKey", new AttributeValue(GetPartitionKey(instance.AccountId)) },
     { "SortKey", new AttributeValue(GetSortKey(instance.Value, instance.Date)) },
-  };
-
-  public static EventTag FromDto(EventTagDto instance) => new()
-  {
-    PartitionKey = GetPartitionKey(instance.AccountId),
-    SortKey = GetSortKey(instance.Value, instance.Date),
   };
 
   public static string GetAccountId(string partitionKey)

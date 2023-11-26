@@ -11,7 +11,6 @@ using Amazon.Lambda.Serialization.SystemTextJson;
 using App.Api.Shared.Extensions;
 using App.Api.Shared.Infrastructure;
 using App.Api.Shared.Models;
-using AWS.Lambda.Powertools.Logging;
 
 namespace App.Api.ListEvents;
 
@@ -62,10 +61,10 @@ public class Function
 
     if (request.Tag != default)
     {
-      return await ListEventsByTag(request, fromDate, toDate);
+      return await ListEventsByTag(request, fromDate, toDate, context);
     }
 
-    return await ListEvents(request, fromDate, toDate);
+    return await ListEvents(request, fromDate, toDate, context);
   }
 
   private static ListEventsInput ParseRequest(APIGatewayProxyRequest apiGatewayProxyRequest)
@@ -146,9 +145,9 @@ public class Function
   }
 
   private static async Task<APIGatewayProxyResponse> ListEventsByTag(
-    ListEventsInput request, DateTime fromDate, DateTime toDate)
+    ListEventsInput request, DateTime fromDate, DateTime toDate, ILambdaContext context)
   {
-    Logger.LogInformation($"Listing Events with the tag {request.Tag} between {fromDate:o} and {toDate:o} for account {request.AccountId}");
+    context.Logger.LogInformation($"Listing Events with the tag {request.Tag} between {fromDate:o} and {toDate:o} for account {request.AccountId}");
 
     var tableName = Environment.GetEnvironmentVariable("TABLE_NAME")!;
     var query = await Client.QueryAsync(new()
@@ -166,9 +165,9 @@ public class Function
       ExclusiveStartKey = FromBase64(request.PaginationToken),
     });
 
-    Logger.LogInformation($"Found {query.Items.Count} Event(s) with matching tag");
+    context.Logger.LogInformation($"Found {query.Items.Count} event(s) with matching tag");
 
-    var eventTags = query.Items.Select(EventTagMapper.ToDtoDD);
+    var eventTags = query.Items.Select(EventTagMapper.ToDto);
 
     var batch = await Client.BatchGetItemAsync(new BatchGetItemRequest()
     {
@@ -185,10 +184,11 @@ public class Function
                 AccountId = x.AccountId,
                 Date = x.Date,
               });
+
               return new Dictionary<string, AttributeValue>
               {
-                { "PartitionKey", new(item.PartitionKey) },
-                { "SortKey", new(item.SortKey) },
+                { "PartitionKey", new(item["PartitionKey"].S) },
+                { "SortKey", new(item["SortKey"].S) },
               };
             }).ToList(),
           }
@@ -199,14 +199,14 @@ public class Function
     return FunctionHelpers.Respond(new ListEventsResult()
     {
       PaginationToken = ToBase64(query.LastEvaluatedKey),
-      Items = batch.Responses.First().Value.Select(EventMapper.ToDtoDD).ToList(),
+      Items = batch.Responses.First().Value.Select(EventMapper.ToDto).ToList(),
     }, CustomJsonSerializerContext.Default.ListEventsResult);
   }
 
   private static async Task<APIGatewayProxyResponse> ListEvents(
-    ListEventsInput request, DateTime fromDate, DateTime toDate)
+    ListEventsInput request, DateTime fromDate, DateTime toDate, ILambdaContext context)
   {
-    Logger.LogInformation($"Listing Events between {fromDate:o} and {toDate:o} for account {request.AccountId}");
+    context.Logger.LogInformation($"Listing events between {fromDate:o} and {toDate:o} for account {request.AccountId}");
 
     var query = await Client.QueryAsync(new()
     {
@@ -223,9 +223,9 @@ public class Function
       ExclusiveStartKey = FromBase64(request.PaginationToken),
     });
 
-    var events = query.Items.Select(EventMapper.ToDtoDD).ToList();
+    var events = query.Items.Select(EventMapper.ToDto).ToList();
 
-    Logger.LogInformation($"Found {events.Count} Event(s)");
+    context.Logger.LogInformation($"Found {events.Count} event(s)");
 
     return FunctionHelpers.Respond(new ListEventsResult()
     {

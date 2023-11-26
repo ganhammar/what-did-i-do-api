@@ -58,7 +58,7 @@ public class Function
     }
 
     var client = new AmazonDynamoDBClient();
-    var item = EventMapper.FromDtoDD(new EventDto
+    var item = EventMapper.FromDto(new EventDto
     {
       AccountId = request.AccountId,
       Title = request.Title,
@@ -74,7 +74,7 @@ public class Function
 
     context.Logger.LogInformation("Event created");
 
-    var eventDto = EventMapper.ToDtoDD(item);
+    var eventDto = EventMapper.ToDto(item);
     await SaveTags(eventDto, client, context);
 
     return FunctionHelpers.Respond(
@@ -106,7 +106,7 @@ public class Function
           {
             new(new PutRequest()
             {
-              Item = TagMapper.FromDtoDD(new TagDto
+              Item = TagMapper.FromDto(new TagDto
               {
                 AccountId = item.AccountId,
                 Value = value,
@@ -114,7 +114,7 @@ public class Function
             }),
             new(new PutRequest()
             {
-              Item = EventTagMapper.FromDtoDD(new EventTagDto
+              Item = EventTagMapper.FromDto(new EventTagDto
               {
                 AccountId = item.AccountId,
                 Date = item.Date,

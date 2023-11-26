@@ -10,7 +10,6 @@ using Amazon.Lambda.Serialization.SystemTextJson;
 using App.Api.Shared.Extensions;
 using App.Api.Shared.Infrastructure;
 using App.Api.Shared.Models;
-using AWS.Lambda.Powertools.Logging;
 
 namespace App.Api.EditEvent;
 
@@ -61,11 +60,7 @@ public class Function
     context.Logger.LogInformation("Attempting to edit event");
 
     var client = new AmazonDynamoDBClient();
-    var config = new DynamoDBOperationConfig()
-    {
-      OverrideTableName = Environment.GetEnvironmentVariable("TABLE_NAME"),
-    };
-    var item = EventMapper.FromDtoDD(new EventDto
+    var item = EventMapper.FromDto(new EventDto
     {
       Id = request.Id,
     });
@@ -82,7 +77,7 @@ public class Function
 
     item = response.Item;
 
-    var eventDto = EventMapper.ToDtoDD(item);
+    var eventDto = EventMapper.ToDto(item);
     await SaveTags(eventDto, request.Tags, client, context);
 
     item["Title"] = new AttributeValue(request.Title);
@@ -113,7 +108,7 @@ public class Function
 
     context.Logger.LogInformation("Event editd");
 
-    eventDto = EventMapper.ToDtoDD(item);
+    eventDto = EventMapper.ToDto(item);
 
     return FunctionHelpers.Respond(
       eventDto,
@@ -133,7 +128,7 @@ public class Function
       OverrideTableName = Environment.GetEnvironmentVariable("TABLE_NAME"),
     };
 
-    Logger.LogInformation($"Attempting to update tag(s)");
+    context.Logger.LogInformation($"Attempting to update tag(s)");
 
     // Delete old tags that no longer applies
     if (item.Tags is not null and { Length: > 0 })
@@ -147,7 +142,7 @@ public class Function
             item.Tags!.Select(tag =>
               new WriteRequest(new DeleteRequest()
               {
-                Key = EventTagMapper.FromDtoDD(new()
+                Key = EventTagMapper.FromDto(new()
                 {
                   AccountId = item.AccountId,
                   Date = item.Date,
@@ -173,7 +168,7 @@ public class Function
               {
                 new(new PutRequest()
                 {
-                  Item = TagMapper.FromDtoDD(new TagDto
+                  Item = TagMapper.FromDto(new TagDto
                   {
                     AccountId = item.AccountId,
                     Value = value,
@@ -181,7 +176,7 @@ public class Function
                 }),
                 new(new PutRequest()
                 {
-                  Item = EventTagMapper.FromDtoDD(new EventTagDto
+                  Item = EventTagMapper.FromDto(new EventTagDto
                   {
                     AccountId = item.AccountId,
                     Date = item.Date,

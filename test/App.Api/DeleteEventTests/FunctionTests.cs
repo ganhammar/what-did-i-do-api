@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using System.Text.Json;
 using Amazon.DynamoDBv2;
-using Amazon.DynamoDBv2.DataModel;
+using Amazon.DynamoDBv2.Model;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.TestUtilities;
 using App.Api.DeleteEvent;
@@ -91,26 +91,27 @@ public class FunctionTests
     Assert.Equal((int)HttpStatusCode.NoContent, response.StatusCode);
 
     var client = new AmazonDynamoDBClient();
-    var dbContext = new DynamoDBContext(client);
-    var batch = dbContext.CreateBatchGet<EventTag>(new()
+    var tableName = Environment.GetEnvironmentVariable("TABLE_NAME")!;
+
+    var result = await client.BatchGetItemAsync(new BatchGetItemRequest()
     {
-      OverrideTableName = Environment.GetEnvironmentVariable("TABLE_NAME"),
+      RequestItems = new()
+      {
+        {
+          tableName,
+          new KeysAndAttributes()
+          {
+            Keys = tags.Select(tag => new Dictionary<string, AttributeValue>()
+            {
+              { "PartitionKey", new AttributeValue(EventTagMapper.GetPartitionKey(accountId)) },
+              { "SortKey", new AttributeValue(EventTagMapper.GetSortKey(tag, date)) },
+            }).ToList(),
+          }
+        },
+      },
     });
 
-    foreach (var tag in tags)
-    {
-      var eventTagDto = EventTagMapper.FromDto(new()
-      {
-        AccountId = accountId,
-        Date = date,
-        Value = tag,
-      });
-      batch.AddKey(eventTagDto.PartitionKey, eventTagDto.SortKey);
-    }
-
-    await batch.ExecuteAsync();
-
-    Assert.Empty(batch.Results);
+    Assert.Empty(result.Responses[tableName]);
   }
 
   [Fact]

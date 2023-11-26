@@ -81,7 +81,7 @@ public class Function
           { "SortKey", new AttributeValue(keys[1]) },
         },
       });
-      await DeleteEventTags(EventMapper.ToDtoDD(response.Item), client);
+      await DeleteEventTags(EventMapper.ToDto(response.Item), client);
     }
 
     return FunctionHelpers.Respond(true);
@@ -104,7 +104,7 @@ public class Function
           eventDto.Tags!.Select(tag =>
             new WriteRequest(new DeleteRequest()
             {
-              Key = EventTagMapper.FromDtoDD(new()
+              Key = EventTagMapper.FromDto(new()
               {
                 AccountId = eventDto.AccountId,
                 Date = eventDto.Date,

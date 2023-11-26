@@ -17,7 +17,7 @@ public static class TagHelpers
       {
         [tableName!] = tags.Select(tag => new WriteRequest(new PutRequest()
         {
-          Item = TagMapper.FromDtoDD(new()
+          Item = TagMapper.FromDto(new()
           {
             AccountId = accountId,
             Value = tag,
