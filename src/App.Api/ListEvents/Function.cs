@@ -270,6 +270,7 @@ public class Function
     return deserializedToken;
   }
 
+  [DynamicDependency(DynamicallyAccessedMemberTypes.NonPublicFields, typeof(AttributeValue))]
   public static void SetPrivatePropertyValue<T>(object obj, string propName, T val)
   {
     foreach (var fi in obj.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic))
