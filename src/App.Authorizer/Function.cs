@@ -17,9 +17,7 @@ public class Function
   [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(APIGatewayCustomAuthorizerRequest))]
   [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(APIGatewayCustomAuthorizerResponse))]
   static Function()
-  {
-    // AWSSDKHandler.RegisterXRayForAllServices();
-  }
+  { }
 
   private static async Task Main()
   {

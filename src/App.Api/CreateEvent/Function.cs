@@ -19,9 +19,7 @@ public class Function
   [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(APIGatewayProxyRequest))]
   [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(APIGatewayProxyResponse))]
   static Function()
-  {
-    // AWSSDKHandler.RegisterXRayForAllServices();
-  }
+  { }
 
   private static async Task Main()
   {

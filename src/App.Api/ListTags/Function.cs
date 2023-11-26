@@ -9,7 +9,6 @@ using Amazon.Lambda.Serialization.SystemTextJson;
 using App.Api.Shared.Extensions;
 using App.Api.Shared.Infrastructure;
 using App.Api.Shared.Models;
-using AWS.Lambda.Powertools.Logging;
 
 namespace App.Api.ListTags;
 
@@ -19,9 +18,7 @@ public class Function
   [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(APIGatewayProxyRequest))]
   [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(APIGatewayProxyResponse))]
   static Function()
-  {
-    // AWSSDKHandler.RegisterXRayForAllServices();
-  }
+  { }
 
   private static async Task Main()
   {
@@ -50,7 +47,7 @@ public class Function
 
     queryStringParameters.TryGetValue("accountid", out var accountId);
 
-    Logger.LogInformation($"Listing tags for account {accountId}");
+    context.Logger.LogInformation($"Listing tags for account {accountId}");
 
     var client = new AmazonDynamoDBClient();
     var tags = await client.QueryAsync(new()
