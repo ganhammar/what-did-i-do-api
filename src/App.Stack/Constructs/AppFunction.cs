@@ -5,37 +5,27 @@ using Constructs;
 
 namespace AppStack.Constructs;
 
-public class AppFunction : Function
-{
-  public AppFunction(Construct scope, string id, Props props)
-    : base(scope, $"{id}Function", new FunctionProps
-    {
-      Runtime = Runtime.DOTNET_6,
-      Architecture = Architecture.ARM_64,
-      Handler = props.Handler,
-      Code = Code.FromAsset($"./{id}.zip"),
-      Timeout = Duration.Minutes(1),
-      MemorySize = props.MemorySize,
-      LogRetention = RetentionDays.ONE_DAY,
-      Tracing = Tracing.ACTIVE,
-      Environment = new Dictionary<string, string>
-      {
-        { "TABLE_NAME", props.TableName ?? "" },
-      },
-    })
-  { }
-
-  public class Props
+public class AppFunction(Construct scope, string id, AppFunction.Props props)
+  : Function(scope, $"{id}Function", new FunctionProps
   {
-    public Props(string handler, string? tableName = default, int memorySize = 1769)
+    Runtime = Runtime.DOTNET_6,
+    Architecture = Architecture.ARM_64,
+    Handler = props.Handler,
+    Code = Code.FromAsset($"./.output/{id}.zip"),
+    Timeout = Duration.Minutes(1),
+    MemorySize = props.MemorySize,
+    LogRetention = RetentionDays.ONE_DAY,
+    Tracing = Tracing.ACTIVE,
+    Environment = new Dictionary<string, string>
     {
-      Handler = handler;
-      TableName = tableName;
-      MemorySize = memorySize;
-    }
-
-    public string Handler { get; set; }
-    public string? TableName { get; set; }
-    public int MemorySize { get; set; }
+      { "TABLE_NAME", props.TableName ?? "" },
+    },
+  })
+{
+  public class Props(string handler, string? tableName = default, int memorySize = 1769)
+  {
+    public string Handler { get; set; } = handler;
+    public string? TableName { get; set; } = tableName;
+    public int MemorySize { get; set; } = memorySize;
   }
 }
