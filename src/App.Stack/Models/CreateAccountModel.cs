@@ -3,18 +3,16 @@ using Constructs;
 
 namespace AppStack.Models;
 
-public class CreateAccountModel : Model
-{
-  public CreateAccountModel(Construct scope, RestApi api)
-    : base(scope, "CreateAccountModel", new ModelProps
+public class CreateAccountModel(Construct scope, RestApi api)
+  : Model(scope, "CreateAccountModel", new ModelProps
+  {
+    RestApi = api,
+    ContentType = "application/json",
+    Schema = new JsonSchema
     {
-      RestApi = api,
-      ContentType = "application/json",
-      Schema = new JsonSchema
-      {
-        Type = JsonSchemaType.OBJECT,
-        Required = new[] { "name" },
-      },
-    })
-  { }
+      Type = JsonSchemaType.OBJECT,
+      Required = ["name"],
+    },
+  })
+{
 }

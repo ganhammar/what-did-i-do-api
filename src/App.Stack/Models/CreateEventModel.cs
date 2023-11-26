@@ -3,18 +3,16 @@ using Constructs;
 
 namespace AppStack.Models;
 
-public class CreateEventModel : Model
-{
-  public CreateEventModel(Construct scope, RestApi api)
-    : base(scope, "CreateEventModel", new ModelProps
+public class CreateEventModel(Construct scope, RestApi api)
+  : Model(scope, "CreateEventModel", new ModelProps
+  {
+    RestApi = api,
+    ContentType = "application/json",
+    Schema = new JsonSchema
     {
-      RestApi = api,
-      ContentType = "application/json",
-      Schema = new JsonSchema
-      {
-        Type = JsonSchemaType.OBJECT,
-        Required = new[] { "accountId", "title" },
-      },
-    })
-  { }
+      Type = JsonSchemaType.OBJECT,
+      Required = ["accountId", "title"],
+    },
+  })
+{
 }

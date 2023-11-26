@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using Amazon.DynamoDBv2.Model;
 using Amazon.Lambda.APIGatewayEvents;
 using App.Api.Shared.Models;
 
@@ -17,6 +18,8 @@ namespace App.Api.Shared.Infrastructure;
 [JsonSerializable(typeof(EventDto))]
 [JsonSerializable(typeof(CreateEventInput))]
 [JsonSerializable(typeof(EditEventInput))]
+[JsonSerializable(typeof(ListEventsResult))]
+[JsonSerializable(typeof(Dictionary<string, AttributeValue>))]
 public partial class CustomJsonSerializerContext : JsonSerializerContext
 {
 }

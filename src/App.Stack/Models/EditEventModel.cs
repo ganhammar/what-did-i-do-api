@@ -3,18 +3,16 @@ using Constructs;
 
 namespace AppStack.Models;
 
-public class EditEventModel : Model
-{
-  public EditEventModel(Construct scope, RestApi api)
-    : base(scope, "EditEventModel", new ModelProps
+public class EditEventModel(Construct scope, RestApi api)
+  : Model(scope, "EditEventModel", new ModelProps
+  {
+    RestApi = api,
+    ContentType = "application/json",
+    Schema = new JsonSchema
     {
-      RestApi = api,
-      ContentType = "application/json",
-      Schema = new JsonSchema
-      {
-        Type = JsonSchemaType.OBJECT,
-        Required = new[] { "id", "title" },
-      },
-    })
-  { }
+      Type = JsonSchemaType.OBJECT,
+      Required = ["id", "title"],
+    },
+  })
+{
 }
