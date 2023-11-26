@@ -15,16 +15,18 @@ public class FunctionTests
   [Fact]
   public async Task Should_ReturnAccount_When_InputIsValid()
   {
-    var function = new Function();
     var context = new TestLambdaContext();
-    var data = new Function.Command
+    var data = new CreateAccountInput
     {
       Name = "Testing Testing",
     };
     var request = new APIGatewayProxyRequest
     {
       HttpMethod = HttpMethod.Post.Method,
-      Body = JsonSerializer.Serialize(data),
+      Body = JsonSerializer.Serialize(data, new JsonSerializerOptions()
+      {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+      }),
       RequestContext = new APIGatewayProxyRequest.ProxyRequestContext
       {
         RequestId = Guid.NewGuid().ToString(),
@@ -36,7 +38,7 @@ public class FunctionTests
         },
       },
     };
-    var response = await function.FunctionHandler(request, context);
+    var response = await Function.FunctionHandler(request, context);
 
     Assert.Equal((int)HttpStatusCode.OK, response.StatusCode);
 
@@ -53,7 +55,6 @@ public class FunctionTests
   [Fact]
   public async Task Should_ReturnBadRequest_When_BodyIsEmpty()
   {
-    var function = new Function();
     var context = new TestLambdaContext();
     var request = new APIGatewayProxyRequest
     {
@@ -69,7 +70,7 @@ public class FunctionTests
         },
       },
     };
-    var response = await function.FunctionHandler(request, context);
+    var response = await Function.FunctionHandler(request, context);
 
     Assert.Equal((int)HttpStatusCode.BadRequest, response.StatusCode);
 
@@ -85,16 +86,18 @@ public class FunctionTests
   [Fact]
   public async Task Should_ReturnUnauthorized_When_ScopeIsNotSet()
   {
-    var function = new Function();
     var context = new TestLambdaContext();
-    var data = new Function.Command
+    var data = new CreateAccountInput
     {
       Name = "Testing Testing",
     };
     var request = new APIGatewayProxyRequest
     {
       HttpMethod = HttpMethod.Post.Method,
-      Body = JsonSerializer.Serialize(data),
+      Body = JsonSerializer.Serialize(data, new JsonSerializerOptions()
+      {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+      }),
       RequestContext = new APIGatewayProxyRequest.ProxyRequestContext
       {
         RequestId = Guid.NewGuid().ToString(),
@@ -105,7 +108,7 @@ public class FunctionTests
         },
       },
     };
-    var response = await function.FunctionHandler(request, context);
+    var response = await Function.FunctionHandler(request, context);
 
     Assert.Equal((int)HttpStatusCode.Unauthorized, response.StatusCode);
 
@@ -121,16 +124,18 @@ public class FunctionTests
   [Fact]
   public async Task Should_ReturnUnauthorized_When_RequiredScopeIsMissing()
   {
-    var function = new Function();
     var context = new TestLambdaContext();
-    var data = new Function.Command
+    var data = new CreateAccountInput
     {
       Name = "Testing Testing",
     };
     var request = new APIGatewayProxyRequest
     {
       HttpMethod = HttpMethod.Post.Method,
-      Body = JsonSerializer.Serialize(data),
+      Body = JsonSerializer.Serialize(data, new JsonSerializerOptions()
+      {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+      }),
       RequestContext = new APIGatewayProxyRequest.ProxyRequestContext
       {
         RequestId = Guid.NewGuid().ToString(),
@@ -142,7 +147,7 @@ public class FunctionTests
         },
       },
     };
-    var response = await function.FunctionHandler(request, context);
+    var response = await Function.FunctionHandler(request, context);
 
     Assert.Equal((int)HttpStatusCode.Unauthorized, response.StatusCode);
 
@@ -158,16 +163,18 @@ public class FunctionTests
   [Fact]
   public async Task Should_Throw_When_SubIsMissingInAuthorizerContext()
   {
-    var function = new Function();
     var context = new TestLambdaContext();
-    var data = new Function.Command
+    var data = new CreateAccountInput
     {
       Name = "Testing Testing",
     };
     var request = new APIGatewayProxyRequest
     {
       HttpMethod = HttpMethod.Post.Method,
-      Body = JsonSerializer.Serialize(data),
+      Body = JsonSerializer.Serialize(data, new JsonSerializerOptions()
+      {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+      }),
       RequestContext = new APIGatewayProxyRequest.ProxyRequestContext
       {
         RequestId = Guid.NewGuid().ToString(),
@@ -180,7 +187,7 @@ public class FunctionTests
     };
 
     var response = await Assert.ThrowsAsync<ArgumentNullException>(async () =>
-      await function.FunctionHandler(request, context));
+      await Function.FunctionHandler(request, context));
 
     Assert.Equal("Subject", response.ParamName);
   }
@@ -188,16 +195,18 @@ public class FunctionTests
   [Fact]
   public async Task Should_Throw_When_EmailIsMissingInAuthorizerContext()
   {
-    var function = new Function();
     var context = new TestLambdaContext();
-    var data = new Function.Command
+    var data = new CreateAccountInput
     {
       Name = "Testing Testing",
     };
     var request = new APIGatewayProxyRequest
     {
       HttpMethod = HttpMethod.Post.Method,
-      Body = JsonSerializer.Serialize(data),
+      Body = JsonSerializer.Serialize(data, new JsonSerializerOptions()
+      {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+      }),
       RequestContext = new APIGatewayProxyRequest.ProxyRequestContext
       {
         RequestId = Guid.NewGuid().ToString(),
@@ -209,7 +218,7 @@ public class FunctionTests
       },
     };
 
-    var response = await Assert.ThrowsAsync<ArgumentNullException>(async () => await function.FunctionHandler(request, context));
+    var response = await Assert.ThrowsAsync<ArgumentNullException>(async () => await Function.FunctionHandler(request, context));
 
     Assert.Equal("Email", response.ParamName);
   }

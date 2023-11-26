@@ -33,10 +33,10 @@ public class AppStack : Stack
       RestApiName = "what-did-i-do-api",
       DefaultCorsPreflightOptions = new CorsOptions
       {
-        AllowOrigins = new[]
-        {
+        AllowOrigins =
+        [
           "http://localhost:3000",
-        },
+        ],
       },
     });
     var apiResource = api.Root.AddResource("api");
@@ -87,7 +87,7 @@ public class AppStack : Stack
     return new RequestAuthorizer(this, "ApiAuthorizer", new RequestAuthorizerProps
     {
       Handler = authorizerFunction,
-      IdentitySources = new[] { IdentitySource.Header("authorization") },
+      IdentitySources = [IdentitySource.Header("authorization")],
       ResultsCacheTtl = Duration.Minutes(5),
     });
   }
@@ -107,11 +107,11 @@ public class AppStack : Stack
     var ssmPolicy = new PolicyStatement(new PolicyStatementProps
     {
       Effect = Effect.ALLOW,
-      Actions = actions.ToArray(),
-      Resources = new[]
-      {
+      Actions = [.. actions],
+      Resources =
+      [
         $"arn:aws:ssm:{Region}:{Account}:parameter{resource}",
-      },
+      ],
     });
 
     function.AddToRolePolicy(ssmPolicy);

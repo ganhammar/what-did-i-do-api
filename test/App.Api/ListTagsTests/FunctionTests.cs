@@ -18,7 +18,6 @@ public class FunctionTests
   {
     var accountId = Guid.NewGuid().ToString();
     TagHelpers.CreateTags(accountId, "test", "testing");
-    var function = new Function();
     var context = new TestLambdaContext();
     var data = new Dictionary<string, string>
     {
@@ -39,7 +38,7 @@ public class FunctionTests
         },
       },
     };
-    var response = await function.FunctionHandler(request, context);
+    var response = await Function.FunctionHandler(request, context);
 
     Assert.Equal((int)HttpStatusCode.OK, response.StatusCode);
 
@@ -58,7 +57,6 @@ public class FunctionTests
   public async Task Should_ReturnEmptyList_When_ThereIsNoTags()
   {
     var accountId = Guid.NewGuid().ToString();
-    var function = new Function();
     var context = new TestLambdaContext();
     var data = new Dictionary<string, string>
     {
@@ -79,7 +77,7 @@ public class FunctionTests
         },
       },
     };
-    var response = await function.FunctionHandler(request, context);
+    var response = await Function.FunctionHandler(request, context);
 
     Assert.Equal((int)HttpStatusCode.OK, response.StatusCode);
 
@@ -95,7 +93,6 @@ public class FunctionTests
   [Fact]
   public async Task Should_ReturnUnauthorized_When_RequiredScopeIsMissing()
   {
-    var function = new Function();
     var context = new TestLambdaContext();
     var data = new Dictionary<string, string>
     {
@@ -116,7 +113,7 @@ public class FunctionTests
         },
       },
     };
-    var response = await function.FunctionHandler(request, context);
+    var response = await Function.FunctionHandler(request, context);
 
     Assert.Equal((int)HttpStatusCode.Unauthorized, response.StatusCode);
 

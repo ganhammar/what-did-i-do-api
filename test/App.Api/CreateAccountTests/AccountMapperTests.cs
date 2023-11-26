@@ -1,5 +1,4 @@
 ﻿using Amazon.DynamoDBv2;
-using Amazon.DynamoDBv2.DataModel;
 using App.Api.Shared.Extensions;
 using App.Api.Shared.Models;
 using TestBase;
@@ -22,8 +21,7 @@ public class AccountMapperTests
     });
 
     var client = new AmazonDynamoDBClient();
-    var dbContext = new DynamoDBContext(client);
-    var id = await AccountMapper.GetUniqueId(name, dbContext, CancellationToken.None);
+    var id = await AccountMapper.GetUniqueId(name, client, CancellationToken.None);
 
     Assert.Equal($"{name.UrlFriendly()}-1", id);
   }

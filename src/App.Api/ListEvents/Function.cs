@@ -1,61 +1,59 @@
-﻿using System.Text;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using System.Text;
 using System.Text.Json;
 using Amazon.DynamoDBv2;
-using Amazon.DynamoDBv2.DataModel;
-using Amazon.DynamoDBv2.DocumentModel;
 using Amazon.DynamoDBv2.Model;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
+using Amazon.Lambda.RuntimeSupport;
 using Amazon.Lambda.Serialization.SystemTextJson;
 using App.Api.Shared.Extensions;
 using App.Api.Shared.Infrastructure;
 using App.Api.Shared.Models;
-using AWS.Lambda.Powertools.Logging;
-using AWS.Lambda.Powertools.Tracing;
-
-[assembly: LambdaSerializer(typeof(CamelCaseLambdaJsonSerializer))]
 
 namespace App.Api.ListEvents;
 
-public class Function : FunctionBase
+public class Function
 {
-  public class Query
+  [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(Function))]
+  [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(APIGatewayProxyRequest))]
+  [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(APIGatewayProxyResponse))]
+  static Function()
   {
-    public string? AccountId { get; set; }
-    public DateTime? FromDate { get; set; }
-    public DateTime? ToDate { get; set; }
-    public int Limit { get; set; }
-    public string? Tag { get; set; }
-    public string? PaginationToken { get; set; }
+    // AWSSDKHandler.RegisterXRayForAllServices();
   }
 
-  private readonly JsonSerializerOptions _serializerOptions = new()
+  private static async Task Main()
   {
-    Converters =
+    Func<APIGatewayProxyRequest, ILambdaContext, Task<APIGatewayProxyResponse>> handler = FunctionHandler;
+    await LambdaBootstrapBuilder
+      .Create(handler, new SourceGeneratorLambdaJsonSerializer<CustomJsonSerializerContext>(options =>
+      {
+        options.PropertyNameCaseInsensitive = true;
+        options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+      }))
+      .Build()
+      .RunAsync();
+  }
+
+  private static readonly IAmazonDynamoDB Client = new AmazonDynamoDBClient();
+
+  public static async Task<APIGatewayProxyResponse> FunctionHandler(
+    APIGatewayProxyRequest apiGatewayProxyRequest, ILambdaContext context)
+  {
+    if (!apiGatewayProxyRequest.HasRequiredScopes("event"))
     {
-      new AttributeValueJsonConverter(),
-    },
-  };
-  private readonly DynamoDBContext _client;
-  private readonly IAmazonDynamoDB _database;
+      return FunctionHelpers.UnauthorizedResponse;
+    }
 
-  public Function()
-    : base("event")
-  {
-    _database = new AmazonDynamoDBClient();
-    _client = new DynamoDBContext(_database);
-  }
-
-  protected override async Task<APIGatewayHttpApiV2ProxyResponse> Handler(
-    APIGatewayProxyRequest apiGatewayProxyRequest)
-  {
     var request = ParseRequest(apiGatewayProxyRequest);
 
     var validationResult = ValidateRequest(request);
 
-    if (validationResult?.Any() == true)
+    if (validationResult is not null and { Length: > 0 })
     {
-      return Respond(validationResult, false);
+      return FunctionHelpers.Respond(validationResult, CustomJsonSerializerContext.Default.FunctionErrorArray, false);
     }
 
     var fromDate = request.FromDate ?? DateTime.UtcNow.Date;
@@ -63,13 +61,13 @@ public class Function : FunctionBase
 
     if (request.Tag != default)
     {
-      return await ListEventsByTag(request, fromDate, toDate);
+      return await ListEventsByTag(request, fromDate, toDate, context);
     }
 
-    return await ListEvents(request, fromDate, toDate);
+    return await ListEvents(request, fromDate, toDate, context);
   }
 
-  private Query ParseRequest(APIGatewayProxyRequest apiGatewayProxyRequest)
+  private static ListEventsInput ParseRequest(APIGatewayProxyRequest apiGatewayProxyRequest)
   {
     var queryStringParameters = new Dictionary<string, string>(
       apiGatewayProxyRequest.QueryStringParameters ?? new Dictionary<string, string>(),
@@ -84,9 +82,9 @@ public class Function : FunctionBase
 
     var fromDate = TryParseDateTime(fromDateRaw);
     var toDate = TryParseDateTime(toDateRaw);
-    int.TryParse(limitRaw, out var limit);
+    _ = int.TryParse(limitRaw, out var limit);
 
-    return new Query
+    return new ListEventsInput
     {
       AccountId = accountId,
       FromDate = fromDate,
@@ -97,13 +95,13 @@ public class Function : FunctionBase
     };
   }
 
-  private List<FunctionError> ValidateRequest(Query request)
+  private static FunctionError[] ValidateRequest(ListEventsInput request)
   {
     var result = new List<FunctionError>();
 
     if (request.Limit is < 1 or > 200)
     {
-      result.Add(new(nameof(Query.Limit), "Limit must be greater than zero and less than 200")
+      result.Add(new(nameof(ListEventsInput.Limit), "Limit must be greater than zero and less than 200")
       {
         ErrorCode = "InvalidInput",
       });
@@ -111,7 +109,7 @@ public class Function : FunctionBase
 
     if (request.ToDate is not null && request.FromDate is null)
     {
-      result.Add(new(nameof(Query.FromDate), "FromDate must have a value if ToDate is set")
+      result.Add(new(nameof(ListEventsInput.FromDate), "FromDate must have a value if ToDate is set")
       {
         ErrorCode = "NotEmpty",
       });
@@ -119,7 +117,7 @@ public class Function : FunctionBase
 
     if (request.FromDate is not null && request.ToDate is null)
     {
-      result.Add(new(nameof(Query.ToDate), "ToDate must have a value if FromDate is set")
+      result.Add(new(nameof(ListEventsInput.ToDate), "ToDate must have a value if FromDate is set")
       {
         ErrorCode = "NotEmpty",
       });
@@ -127,16 +125,16 @@ public class Function : FunctionBase
 
     if (request.ToDate < request.FromDate)
     {
-      result.Add(new(nameof(Query.ToDate), "ToDate cannot be less than FromDate")
+      result.Add(new(nameof(ListEventsInput.ToDate), "ToDate cannot be less than FromDate")
       {
         ErrorCode = "InvalidInput",
       });
     }
 
-    return result;
+    return [.. result];
   }
 
-  private DateTime? TryParseDateTime(string? date)
+  private static DateTime? TryParseDateTime(string? date)
   {
     if (DateTime.TryParse(date, out var parseDate))
     {
@@ -146,67 +144,71 @@ public class Function : FunctionBase
     return default;
   }
 
-  [Tracing(SegmentName = "List events by tag")]
-  private async Task<APIGatewayHttpApiV2ProxyResponse> ListEventsByTag(
-    Query request, DateTime fromDate, DateTime toDate)
+  private static async Task<APIGatewayProxyResponse> ListEventsByTag(
+    ListEventsInput request, DateTime fromDate, DateTime toDate, ILambdaContext context)
   {
-    Logger.LogInformation($"Listing Events with the tag {request.Tag} between {fromDate:o} and {toDate:o} for account {request.AccountId}");
+    context.Logger.LogInformation($"Listing Events with the tag {request.Tag} between {fromDate:o} and {toDate:o} for account {request.AccountId}");
 
-    var tableName = Environment.GetEnvironmentVariable("TABLE_NAME");
-    var query = await _database.QueryAsync(new()
+    var tableName = Environment.GetEnvironmentVariable("TABLE_NAME")!;
+    var query = await Client.QueryAsync(new()
     {
+      TableName = tableName,
       KeyConditionExpression = "PartitionKey = :partitionKey AND SortKey BETWEEN :fromDate AND :toDate",
       ExpressionAttributeValues = new Dictionary<string, AttributeValue>
       {
-        { ":partitionKey", new(EventTagMapper.GetPartitionKey(request.AccountId)) },
+        { ":partitionKey", new(EventTagMapper.GetPartitionKey(request.AccountId!)) },
         { ":fromDate", new(EventTagMapper.GetSortKey(request.Tag, fromDate)) },
         { ":toDate", new(EventTagMapper.GetSortKey(request.Tag, toDate)) },
       },
       Limit = request.Limit,
       ScanIndexForward = false,
-      TableName = tableName,
       ExclusiveStartKey = FromBase64(request.PaginationToken),
     });
 
-    Logger.LogInformation($"Found {query.Items.Count()} Event(s) with matching tag");
+    context.Logger.LogInformation($"Found {query.Items.Count} event(s) with matching tag");
 
-    var eventTags = query.Items.Select(x =>
-    {
-      var document = Document.FromAttributeMap(x);
-      return EventTagMapper.ToDto(_client.FromDocument<EventTag>(document));
-    });
+    var eventTags = query.Items.Select(EventTagMapper.ToDto);
 
-    var batch = _client.CreateBatchGet<Event>(new()
+    var batch = await Client.BatchGetItemAsync(new BatchGetItemRequest()
     {
-      OverrideTableName = tableName,
-    });
-
-    foreach (var eventTag in eventTags)
-    {
-      var item = EventMapper.FromDto(new()
+      RequestItems = new Dictionary<string, KeysAndAttributes>
       {
-        AccountId = eventTag.AccountId,
-        Date = eventTag.Date,
-      });
-      batch.AddKey(item.PartitionKey, item.SortKey);
-    }
+        {
+          tableName,
+          new()
+          {
+            Keys = eventTags.Select(x =>
+            {
+              var item = EventMapper.FromDto(new()
+              {
+                AccountId = x.AccountId,
+                Date = x.Date,
+              });
 
-    await batch.ExecuteAsync();
-
-    return Respond(new Result()
-    {
-      Items = batch.Results.Select(x => EventMapper.ToDto(x)).ToList(),
-      PaginationToken = ToBase64(query.LastEvaluatedKey),
+              return new Dictionary<string, AttributeValue>
+              {
+                { "PartitionKey", new(item["PartitionKey"].S) },
+                { "SortKey", new(item["SortKey"].S) },
+              };
+            }).ToList(),
+          }
+        },
+      },
     });
+
+    return FunctionHelpers.Respond(new ListEventsResult()
+    {
+      PaginationToken = ToBase64(query.LastEvaluatedKey),
+      Items = batch.Responses.First().Value.Select(EventMapper.ToDto).ToList(),
+    }, CustomJsonSerializerContext.Default.ListEventsResult);
   }
 
-  [Tracing(SegmentName = "List events")]
-  private async Task<APIGatewayHttpApiV2ProxyResponse> ListEvents(
-    Query request, DateTime fromDate, DateTime toDate)
+  private static async Task<APIGatewayProxyResponse> ListEvents(
+    ListEventsInput request, DateTime fromDate, DateTime toDate, ILambdaContext context)
   {
-    Logger.LogInformation($"Listing Events between {fromDate:o} and {toDate:o} for account {request.AccountId}");
+    context.Logger.LogInformation($"Listing events between {fromDate:o} and {toDate:o} for account {request.AccountId}");
 
-    var query = await _database.QueryAsync(new()
+    var query = await Client.QueryAsync(new()
     {
       KeyConditionExpression = "PartitionKey = :partitionKey AND SortKey BETWEEN :fromDate AND :toDate",
       ExpressionAttributeValues = new Dictionary<string, AttributeValue>
@@ -221,33 +223,31 @@ public class Function : FunctionBase
       ExclusiveStartKey = FromBase64(request.PaginationToken),
     });
 
-    var events = query.Items.Select(x =>
-    {
-      var document = Document.FromAttributeMap(x);
-      return _client.FromDocument<Event>(document);
-    });
+    var events = query.Items.Select(EventMapper.ToDto).ToList();
 
-    Logger.LogInformation($"Found {events.Count()} Event(s)");
+    context.Logger.LogInformation($"Found {events.Count} event(s)");
 
-    return Respond(new Result()
+    return FunctionHelpers.Respond(new ListEventsResult()
     {
       PaginationToken = ToBase64(query.LastEvaluatedKey),
-      Items = events.Select(x => EventMapper.ToDto(x)).ToList(),
-    });
+      Items = events,
+    }, CustomJsonSerializerContext.Default.ListEventsResult);
   }
 
-  private string? ToBase64(Dictionary<string, AttributeValue> dictionary)
+  private static string? ToBase64(Dictionary<string, AttributeValue> dictionary)
   {
-    if (dictionary.Any() == false)
+    if (dictionary.Count == 0)
     {
       return default;
     }
 
-    var json = JsonSerializer.Serialize(dictionary, _serializerOptions);
-    return Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
+    var json = JsonSerializer.Serialize(
+      dictionary,
+      CustomJsonSerializerContext.Default.DictionaryStringAttributeValue);
+    return Convert.ToBase64String(Encoding.UTF8.GetBytes(json.ToString()));
   }
 
-  private Dictionary<string, AttributeValue>? FromBase64(string? token)
+  private static Dictionary<string, AttributeValue>? FromBase64(string? token)
   {
     if (token == default)
     {
@@ -255,7 +255,32 @@ public class Function : FunctionBase
     }
 
     var bytes = Convert.FromBase64String(token);
-    return JsonSerializer.Deserialize<Dictionary<string, AttributeValue>>(
-      Encoding.UTF8.GetString(bytes), _serializerOptions);
+    var deserializedToken = JsonSerializer.Deserialize(
+      Encoding.UTF8.GetString(bytes),
+      CustomJsonSerializerContext.Default.DictionaryStringAttributeValue);
+
+    if (deserializedToken is null)
+    {
+      return default;
+    }
+
+    foreach (KeyValuePair<string, AttributeValue> item in deserializedToken)
+    {
+      SetPrivatePropertyValue<bool?>(item.Value, "_null", null);
+    }
+
+    return deserializedToken;
+  }
+
+  public static void SetPrivatePropertyValue<T>(object obj, string propName, T val)
+  {
+    foreach (var fi in obj.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic))
+    {
+      if (fi.Name.Contains(propName, StringComparison.CurrentCultureIgnoreCase))
+      {
+        fi.SetValue(obj, val);
+        break;
+      }
+    }
   }
 }

@@ -1,6 +1,4 @@
-﻿using Xunit;
-
-namespace TestBase;
+﻿namespace TestBase;
 
 [CollectionDefinition(Constants.DatabaseCollection)]
 public class DatabaseCollection : ICollectionFixture<DatabaseFixture>

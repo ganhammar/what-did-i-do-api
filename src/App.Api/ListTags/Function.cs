@@ -1,24 +1,49 @@
-﻿using Amazon.DynamoDBv2;
-using Amazon.DynamoDBv2.DataModel;
-using Amazon.DynamoDBv2.DocumentModel;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
+using Amazon.DynamoDBv2;
+using Amazon.DynamoDBv2.Model;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
+using Amazon.Lambda.RuntimeSupport;
 using Amazon.Lambda.Serialization.SystemTextJson;
+using App.Api.Shared.Extensions;
 using App.Api.Shared.Infrastructure;
 using App.Api.Shared.Models;
 using AWS.Lambda.Powertools.Logging;
 
-[assembly: LambdaSerializer(typeof(CamelCaseLambdaJsonSerializer))]
-
 namespace App.Api.ListTags;
 
-public class Function : FunctionBase
+public class Function
 {
-  public Function() : base("event") { }
-
-  protected override async Task<APIGatewayHttpApiV2ProxyResponse> Handler(
-    APIGatewayProxyRequest apiGatewayProxyRequest)
+  [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(Function))]
+  [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(APIGatewayProxyRequest))]
+  [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(APIGatewayProxyResponse))]
+  static Function()
   {
+    // AWSSDKHandler.RegisterXRayForAllServices();
+  }
+
+  private static async Task Main()
+  {
+    Func<APIGatewayProxyRequest, ILambdaContext, Task<APIGatewayProxyResponse>> handler = FunctionHandler;
+    await LambdaBootstrapBuilder
+      .Create(handler, new SourceGeneratorLambdaJsonSerializer<CustomJsonSerializerContext>(options =>
+      {
+        options.PropertyNameCaseInsensitive = true;
+        options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+      }))
+      .Build()
+      .RunAsync();
+  }
+
+  public static async Task<APIGatewayProxyResponse> FunctionHandler(
+    APIGatewayProxyRequest apiGatewayProxyRequest, ILambdaContext context)
+  {
+    if (!apiGatewayProxyRequest.HasRequiredScopes("event"))
+    {
+      return FunctionHelpers.UnauthorizedResponse;
+    }
+
     var queryStringParameters = new Dictionary<string, string>(
       apiGatewayProxyRequest.QueryStringParameters ?? new Dictionary<string, string>(),
       StringComparer.OrdinalIgnoreCase);
@@ -27,28 +52,22 @@ public class Function : FunctionBase
 
     Logger.LogInformation($"Listing tags for account {accountId}");
 
-    var client = new DynamoDBContext(new AmazonDynamoDBClient());
-    var search = client.FromQueryAsync<Tag>(
-      new()
+    var client = new AmazonDynamoDBClient();
+    var tags = await client.QueryAsync(new()
+    {
+      TableName = Environment.GetEnvironmentVariable("TABLE_NAME"),
+      KeyConditionExpression = "PartitionKey = :partitionKey",
+      ExpressionAttributeValues = new()
       {
-        KeyExpression = new Expression
-        {
-          ExpressionStatement = "PartitionKey = :partitionKey",
-          ExpressionAttributeValues = new Dictionary<string, DynamoDBEntry>
-          {
-            { ":partitionKey", TagMapper.GetPartitionKey(accountId!) },
-          },
-        },
-        BackwardSearch = true,
+        { ":partitionKey", new AttributeValue(TagMapper.GetPartitionKey(accountId!)) },
       },
-      new()
-      {
-        OverrideTableName = Environment.GetEnvironmentVariable("TABLE_NAME"),
-      });
-    var tags = await search.GetRemainingAsync();
+      ScanIndexForward = false,
+    });
 
-    Logger.LogInformation($"Found {tags.Count} tag(s)");
+    context.Logger.LogInformation($"Found {tags.Count} tag(s)");
 
-    return Respond(tags.Select(x => TagMapper.ToDto(x)).ToList());
+    return FunctionHelpers.Respond(
+      tags.Items.Select(TagMapper.ToDto).ToList(),
+      CustomJsonSerializerContext.Default.ListTagDto);
   }
 }

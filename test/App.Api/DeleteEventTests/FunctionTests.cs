@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using System.Text.Json;
 using Amazon.DynamoDBv2;
-using Amazon.DynamoDBv2.DataModel;
+using Amazon.DynamoDBv2.Model;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.TestUtilities;
 using App.Api.DeleteEvent;
@@ -46,8 +46,7 @@ public class FunctionTests
       },
     };
 
-    var function = new Function();
-    var response = await function.FunctionHandler(request, context);
+    var response = await Function.FunctionHandler(request, context);
 
     Assert.Equal((int)HttpStatusCode.NoContent, response.StatusCode);
   }
@@ -87,38 +86,37 @@ public class FunctionTests
       },
     };
 
-    var function = new Function();
-    var response = await function.FunctionHandler(request, context);
+    var response = await Function.FunctionHandler(request, context);
 
     Assert.Equal((int)HttpStatusCode.NoContent, response.StatusCode);
 
     var client = new AmazonDynamoDBClient();
-    var dbContext = new DynamoDBContext(client);
-    var batch = dbContext.CreateBatchGet<EventTag>(new()
+    var tableName = Environment.GetEnvironmentVariable("TABLE_NAME")!;
+
+    var result = await client.BatchGetItemAsync(new BatchGetItemRequest()
     {
-      OverrideTableName = Environment.GetEnvironmentVariable("TABLE_NAME"),
+      RequestItems = new()
+      {
+        {
+          tableName,
+          new KeysAndAttributes()
+          {
+            Keys = tags.Select(tag => new Dictionary<string, AttributeValue>()
+            {
+              { "PartitionKey", new AttributeValue(EventTagMapper.GetPartitionKey(accountId)) },
+              { "SortKey", new AttributeValue(EventTagMapper.GetSortKey(tag, date)) },
+            }).ToList(),
+          }
+        },
+      },
     });
 
-    foreach (var tag in tags)
-    {
-      var eventTagDto = EventTagMapper.FromDto(new()
-      {
-        AccountId = accountId,
-        Date = date,
-        Value = tag,
-      });
-      batch.AddKey(eventTagDto.PartitionKey, eventTagDto.SortKey);
-    }
-
-    await batch.ExecuteAsync();
-
-    Assert.Empty(batch.Results);
+    Assert.Empty(result.Responses[tableName]);
   }
 
   [Fact]
   public async Task Should_ReturnBadRequest_When_InputIsNotValid()
   {
-    var function = new Function();
     var context = new TestLambdaContext();
     var request = new APIGatewayProxyRequest
     {
@@ -135,7 +133,7 @@ public class FunctionTests
         },
       },
     };
-    var response = await function.FunctionHandler(request, context);
+    var response = await Function.FunctionHandler(request, context);
 
     Assert.Equal((int)HttpStatusCode.BadRequest, response.StatusCode);
 
@@ -152,7 +150,6 @@ public class FunctionTests
   [Fact]
   public async Task Should_ReturnBadRequest_When_IdIsNotValid()
   {
-    var function = new Function();
     var context = new TestLambdaContext();
     var data = new Dictionary<string, string>
     {
@@ -173,7 +170,7 @@ public class FunctionTests
         },
       },
     };
-    var response = await function.FunctionHandler(request, context);
+    var response = await Function.FunctionHandler(request, context);
 
     Assert.Equal((int)HttpStatusCode.BadRequest, response.StatusCode);
 
@@ -197,7 +194,6 @@ public class FunctionTests
       Date = DateTime.UtcNow,
     });
 
-    var function = new Function();
     var context = new TestLambdaContext();
     var data = new Dictionary<string, string>
     {
@@ -218,7 +214,7 @@ public class FunctionTests
         },
       },
     };
-    var response = await function.FunctionHandler(request, context);
+    var response = await Function.FunctionHandler(request, context);
 
     Assert.Equal((int)HttpStatusCode.Unauthorized, response.StatusCode);
 

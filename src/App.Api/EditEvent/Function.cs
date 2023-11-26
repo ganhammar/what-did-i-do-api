@@ -1,72 +1,124 @@
-﻿using Amazon.DynamoDBv2;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
+using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
+using Amazon.DynamoDBv2.Model;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
+using Amazon.Lambda.RuntimeSupport;
 using Amazon.Lambda.Serialization.SystemTextJson;
+using App.Api.Shared.Extensions;
 using App.Api.Shared.Infrastructure;
 using App.Api.Shared.Models;
-using AWS.Lambda.Powertools.Logging;
-
-[assembly: LambdaSerializer(typeof(CamelCaseLambdaJsonSerializer))]
 
 namespace App.Api.EditEvent;
 
-public class Function : FunctionBase
+public class Function
 {
-  public class Command
+  [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(Function))]
+  [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(APIGatewayProxyRequest))]
+  [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(APIGatewayProxyResponse))]
+  static Function()
   {
-    public string? Id { get; set; }
-    public string? Title { get; set; }
-    public string? Description { get; set; }
-    public string[]? Tags { get; set; }
+    // AWSSDKHandler.RegisterXRayForAllServices();
   }
 
-  public Function() : base("event") { }
-
-  protected override async Task<APIGatewayHttpApiV2ProxyResponse> Handler(
-    APIGatewayProxyRequest apiGatewayProxyRequest)
+  private static async Task Main()
   {
-    var request = TryDeserialize<Command>(apiGatewayProxyRequest);
+    Func<APIGatewayProxyRequest, ILambdaContext, Task<APIGatewayProxyResponse>> handler = FunctionHandler;
+    await LambdaBootstrapBuilder
+      .Create(handler, new SourceGeneratorLambdaJsonSerializer<CustomJsonSerializerContext>(options =>
+      {
+        options.PropertyNameCaseInsensitive = true;
+        options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+      }))
+      .Build()
+      .RunAsync();
+  }
 
-    if (request == default)
+  public static async Task<APIGatewayProxyResponse> FunctionHandler(
+    APIGatewayProxyRequest apiGatewayProxyRequest, ILambdaContext context)
+  {
+    if (!apiGatewayProxyRequest.HasRequiredScopes("event"))
     {
-      return Respond(request);
+      return FunctionHelpers.UnauthorizedResponse;
+    }
+    else if (string.IsNullOrEmpty(apiGatewayProxyRequest.Body))
+    {
+      return FunctionHelpers.NoBodyResponse;
     }
 
-    Logger.LogInformation("Attempting to edit Event");
+    var request = JsonSerializer.Deserialize(
+      apiGatewayProxyRequest.Body,
+      CustomJsonSerializerContext.Default.EditEventInput);
 
-    var client = new DynamoDBContext(new AmazonDynamoDBClient());
-    var config = new DynamoDBOperationConfig()
+    if (request is null)
     {
-      OverrideTableName = Environment.GetEnvironmentVariable("TABLE_NAME"),
-    };
+      return FunctionHelpers.NoBodyResponse;
+    }
+
+    context.Logger.LogInformation("Attempting to edit event");
+
+    var client = new AmazonDynamoDBClient();
     var item = EventMapper.FromDto(new EventDto
     {
       Id = request.Id,
     });
-    item = await client.LoadAsync<Event>(
-      item.PartitionKey, item.SortKey, config);
+
+    var response = await client.GetItemAsync(new GetItemRequest()
+    {
+      TableName = Environment.GetEnvironmentVariable("TABLE_NAME")!,
+      Key = new Dictionary<string, AttributeValue>()
+      {
+        { "PartitionKey", new AttributeValue(item["PartitionKey"].S) },
+        { "SortKey", new AttributeValue(item["SortKey"].S) },
+      },
+    });
+
+    item = response.Item;
 
     var eventDto = EventMapper.ToDto(item);
-    await SaveTags(eventDto, request.Tags, client);
+    await SaveTags(eventDto, request.Tags, client, context);
 
-    item.Title = request.Title;
-    item.Description = request.Description;
-    item.Tags = request.Tags;
+    item["Title"] = new AttributeValue(request.Title);
 
-    await client.SaveAsync(item, config);
+    if (request.Description is not null)
+    {
+      item["Description"] = new AttributeValue(request.Description);
+    }
+    else
+    {
+      item.Remove("Description");
+    }
 
-    Logger.LogInformation("Event editd");
+    if (request.Tags is not null and { Length: > 0 })
+    {
+      item["Tags"] = new AttributeValue(request.Tags.Distinct().ToList());
+    }
+    else
+    {
+      item.Remove("Tags");
+    }
+
+    await client.PutItemAsync(new PutItemRequest()
+    {
+      TableName = Environment.GetEnvironmentVariable("TABLE_NAME"),
+      Item = item,
+    });
+
+    context.Logger.LogInformation("Event editd");
 
     eventDto = EventMapper.ToDto(item);
 
-    return Respond(eventDto);
+    return FunctionHelpers.Respond(
+      eventDto,
+      CustomJsonSerializerContext.Default.EventDto);
   }
 
-  public async Task SaveTags(
-    EventDto item, string[]? newTags, DynamoDBContext client)
+  public static async Task SaveTags(
+    EventDto item, string[]? newTags, AmazonDynamoDBClient client, ILambdaContext context)
   {
-    if (item.Tags?.Any() != true && newTags?.Any() != true)
+    if ((item.Tags is null or { Length: 0 }) && (newTags is null or { Length: 0 }))
     {
       return;
     }
@@ -76,50 +128,67 @@ public class Function : FunctionBase
       OverrideTableName = Environment.GetEnvironmentVariable("TABLE_NAME"),
     };
 
-    Logger.LogInformation($"Attempting to update tag(s)");
-
-    var tags = client.CreateBatchWrite<Tag>(config);
-    var eventTags = client.CreateBatchWrite<EventTag>(config);
+    context.Logger.LogInformation($"Attempting to update tag(s)");
 
     // Delete old tags that no longer applies
-    if (item.Tags?.Any() == true)
+    if (item.Tags is not null and { Length: > 0 })
     {
-      foreach (var value in item.Tags)
+      await client.BatchWriteItemAsync(new BatchWriteItemRequest()
       {
-        if (newTags?.Any() == false || newTags!.Contains(value) == false)
+        RequestItems = new()
         {
-          eventTags.AddDeleteItem(EventTagMapper.FromDto(new EventTagDto
           {
-            AccountId = item.AccountId,
-            Date = item.Date,
-            Value = value,
-          }));
-        }
-      }
+            Environment.GetEnvironmentVariable("TABLE_NAME")!,
+            item.Tags!.Select(tag =>
+              new WriteRequest(new DeleteRequest()
+              {
+                Key = EventTagMapper.FromDto(new()
+                {
+                  AccountId = item.AccountId,
+                  Date = item.Date,
+                  Value = tag,
+                })
+              })).ToList()
+          },
+        },
+      });
     }
 
     // Create or update
-    if (newTags?.Any() == true)
+    if (newTags is not null and { Length: > 0 })
     {
-      foreach (var value in newTags.Distinct())
+      await client.BatchWriteItemAsync(new BatchWriteItemRequest()
       {
-        tags.AddPutItem(TagMapper.FromDto(new TagDto
+        RequestItems = new()
         {
-          AccountId = item.AccountId,
-          Value = value,
-        }));
-
-        eventTags.AddPutItem(EventTagMapper.FromDto(new EventTagDto
-        {
-          AccountId = item.AccountId,
-          Date = item.Date,
-          Value = value,
-        }));
-      }
+          {
+            Environment.GetEnvironmentVariable("TABLE_NAME")!,
+            newTags.SelectMany(value =>
+              new List<WriteRequest>
+              {
+                new(new PutRequest()
+                {
+                  Item = TagMapper.FromDto(new TagDto
+                  {
+                    AccountId = item.AccountId,
+                    Value = value,
+                  }),
+                }),
+                new(new PutRequest()
+                {
+                  Item = EventTagMapper.FromDto(new EventTagDto
+                  {
+                    AccountId = item.AccountId,
+                    Date = item.Date,
+                    Value = value,
+                  }),
+                }),
+              }).ToList()
+          },
+        },
+      });
     }
 
-    await tags.ExecuteAsync();
-    await eventTags.ExecuteAsync();
-    Logger.LogInformation("Tags saved");
+    context.Logger.LogInformation("Tags saved");
   }
 }

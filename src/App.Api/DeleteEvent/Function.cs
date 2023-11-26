@@ -1,23 +1,48 @@
-﻿using Amazon.DynamoDBv2;
-using Amazon.DynamoDBv2.DataModel;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
+using Amazon.DynamoDBv2;
+using Amazon.DynamoDBv2.Model;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
+using Amazon.Lambda.RuntimeSupport;
 using Amazon.Lambda.Serialization.SystemTextJson;
+using App.Api.Shared.Extensions;
 using App.Api.Shared.Infrastructure;
 using App.Api.Shared.Models;
-using AWS.Lambda.Powertools.Logging;
-
-[assembly: LambdaSerializer(typeof(CamelCaseLambdaJsonSerializer))]
 
 namespace App.Api.DeleteEvent;
 
-public class Function : FunctionBase
+public class Function
 {
-  public Function() : base("event") { }
-
-  protected override async Task<APIGatewayHttpApiV2ProxyResponse> Handler(
-    APIGatewayProxyRequest apiGatewayProxyRequest)
+  [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(Function))]
+  [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(APIGatewayProxyRequest))]
+  [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(APIGatewayProxyResponse))]
+  static Function()
   {
+    // AWSSDKHandler.RegisterXRayForAllServices();
+  }
+
+  private static async Task Main()
+  {
+    Func<APIGatewayProxyRequest, ILambdaContext, Task<APIGatewayProxyResponse>> handler = FunctionHandler;
+    await LambdaBootstrapBuilder
+      .Create(handler, new SourceGeneratorLambdaJsonSerializer<CustomJsonSerializerContext>(options =>
+      {
+        options.PropertyNameCaseInsensitive = true;
+        options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+      }))
+      .Build()
+      .RunAsync();
+  }
+
+  public static async Task<APIGatewayProxyResponse> FunctionHandler(
+    APIGatewayProxyRequest apiGatewayProxyRequest, ILambdaContext context)
+  {
+    if (!apiGatewayProxyRequest.HasRequiredScopes("event"))
+    {
+      return FunctionHelpers.UnauthorizedResponse;
+    }
+
     var queryStringParameters = new Dictionary<string, string>(
       apiGatewayProxyRequest.QueryStringParameters ?? new Dictionary<string, string>(),
       StringComparer.OrdinalIgnoreCase);
@@ -26,50 +51,68 @@ public class Function : FunctionBase
 
     if (EventMapper.GetKeys(id).Length != 2)
     {
-      return Respond(false);
+      return FunctionHelpers.NoBodyResponse;
     }
 
-    Logger.LogInformation("Attempting to delete Event");
+    context.Logger.LogInformation("Attempting to delete event");
 
-    var config = new DynamoDBOperationConfig()
-    {
-      OverrideTableName = Environment.GetEnvironmentVariable("TABLE_NAME"),
-    };
-    var client = new DynamoDBContext(new AmazonDynamoDBClient());
+    var client = new AmazonDynamoDBClient();
     var keys = EventMapper.GetKeys(id);
-    var item = await client.LoadAsync<Event>(keys[0], keys[1], config);
 
-    if (item != default)
+    var response = await client.GetItemAsync(new GetItemRequest()
     {
-      Logger.LogInformation("Matching Event found, deleting");
-      await client.DeleteAsync(item, config);
-      await DeleteEventTags(item, client, config);
+      TableName = Environment.GetEnvironmentVariable("TABLE_NAME")!,
+      Key = new Dictionary<string, AttributeValue>()
+      {
+        { "PartitionKey", new AttributeValue(keys[0]) },
+        { "SortKey", new AttributeValue(keys[1]) },
+      },
+    });
+
+    if (response.Item is not null)
+    {
+      context.Logger.LogInformation("Matching event foundm, deleting");
+      await client.DeleteItemAsync(new DeleteItemRequest()
+      {
+        TableName = Environment.GetEnvironmentVariable("TABLE_NAME")!,
+        Key = new Dictionary<string, AttributeValue>()
+        {
+          { "PartitionKey", new AttributeValue(keys[0]) },
+          { "SortKey", new AttributeValue(keys[1]) },
+        },
+      });
+      await DeleteEventTags(EventMapper.ToDto(response.Item), client);
     }
 
-    return Respond();
+    return FunctionHelpers.Respond(true);
   }
 
-  public async Task DeleteEventTags(
-    Event item, DynamoDBContext client, DynamoDBOperationConfig config)
+  public static async Task DeleteEventTags(
+    EventDto eventDto, AmazonDynamoDBClient client)
   {
-    if (item.Tags?.Any() != true)
+    if (eventDto.Tags is null or { Length: 0 })
     {
       return;
     }
 
-    var eventDto = EventMapper.ToDto(item);
-    var batch = client.CreateBatchWrite<EventTag>(config);
-
-    foreach (var tag in eventDto.Tags!)
+    await client.BatchWriteItemAsync(new BatchWriteItemRequest()
     {
-      batch.AddDeleteItem(EventTagMapper.FromDto(new()
+      RequestItems = new Dictionary<string, List<WriteRequest>>()
       {
-        AccountId = eventDto.AccountId,
-        Date = eventDto.Date,
-        Value = tag,
-      }));
-    }
-
-    await batch.ExecuteAsync();
+        {
+          Environment.GetEnvironmentVariable("TABLE_NAME")!,
+          eventDto.Tags!.Select(tag =>
+            new WriteRequest(new DeleteRequest()
+            {
+              Key = EventTagMapper.FromDto(new()
+              {
+                AccountId = eventDto.AccountId,
+                Date = eventDto.Date,
+                Value = tag,
+              })
+            })).ToList()
+        },
+      },
+    });
   }
 }

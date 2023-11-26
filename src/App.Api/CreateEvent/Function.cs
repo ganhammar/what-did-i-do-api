@@ -1,42 +1,63 @@
-﻿using Amazon.DynamoDBv2;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
+using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
+using Amazon.DynamoDBv2.Model;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
+using Amazon.Lambda.RuntimeSupport;
 using Amazon.Lambda.Serialization.SystemTextJson;
+using App.Api.Shared.Extensions;
 using App.Api.Shared.Infrastructure;
 using App.Api.Shared.Models;
-using AWS.Lambda.Powertools.Logging;
-
-[assembly: LambdaSerializer(typeof(CamelCaseLambdaJsonSerializer))]
 
 namespace App.Api.CreateEvent;
 
-public class Function : FunctionBase
+public class Function
 {
-  public class Command
+  [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(Function))]
+  [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(APIGatewayProxyRequest))]
+  [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(APIGatewayProxyResponse))]
+  static Function()
   {
-    public string? AccountId { get; set; }
-    public string? Title { get; set; }
-    public string? Description { get; set; }
-    public DateTime? Date { get; set; }
-    public string[]? Tags { get; set; }
+    // AWSSDKHandler.RegisterXRayForAllServices();
   }
 
-  public Function() : base("event") { }
-
-  protected override async Task<APIGatewayHttpApiV2ProxyResponse> Handler(
-    APIGatewayProxyRequest apiGatewayProxyRequest)
+  private static async Task Main()
   {
-    Logger.LogInformation("Attempting to create Event");
+    Func<APIGatewayProxyRequest, ILambdaContext, Task<APIGatewayProxyResponse>> handler = FunctionHandler;
+    await LambdaBootstrapBuilder
+      .Create(handler, new SourceGeneratorLambdaJsonSerializer<CustomJsonSerializerContext>(options =>
+      {
+        options.PropertyNameCaseInsensitive = true;
+        options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+      }))
+      .Build()
+      .RunAsync();
+  }
 
-    var request = TryDeserialize<Command>(apiGatewayProxyRequest);
-
-    if (request == default)
+  public static async Task<APIGatewayProxyResponse> FunctionHandler(
+    APIGatewayProxyRequest apiGatewayProxyRequest, ILambdaContext context)
+  {
+    if (!apiGatewayProxyRequest.HasRequiredScopes("event"))
     {
-      return Respond(request);
+      return FunctionHelpers.UnauthorizedResponse;
+    }
+    else if (string.IsNullOrEmpty(apiGatewayProxyRequest.Body))
+    {
+      return FunctionHelpers.NoBodyResponse;
     }
 
-    var client = new DynamoDBContext(new AmazonDynamoDBClient());
+    var request = JsonSerializer.Deserialize(
+      apiGatewayProxyRequest.Body,
+      CustomJsonSerializerContext.Default.CreateEventInput);
+
+    if (request is null)
+    {
+      return FunctionHelpers.NoBodyResponse;
+    }
+
+    var client = new AmazonDynamoDBClient();
     var item = EventMapper.FromDto(new EventDto
     {
       AccountId = request.AccountId,
@@ -45,53 +66,65 @@ public class Function : FunctionBase
       Date = request.Date?.ToUniversalTime() ?? DateTime.UtcNow,
       Tags = request.Tags?.Distinct().ToArray(),
     });
-    await client.SaveAsync(item, new()
+    await client.PutItemAsync(new PutItemRequest()
     {
-      OverrideTableName = Environment.GetEnvironmentVariable("TABLE_NAME"),
-    }, default);
+      TableName = Environment.GetEnvironmentVariable("TABLE_NAME"),
+      Item = item,
+    });
 
-    Logger.LogInformation("Event created");
+    context.Logger.LogInformation("Event created");
 
     var eventDto = EventMapper.ToDto(item);
-    await SaveTags(eventDto, client);
+    await SaveTags(eventDto, client, context);
 
-    return Respond(eventDto);
+    return FunctionHelpers.Respond(
+      eventDto,
+      CustomJsonSerializerContext.Default.EventDto);
   }
 
-  public async Task SaveTags(EventDto item, DynamoDBContext client)
+  public static async Task SaveTags(
+    EventDto item, AmazonDynamoDBClient client, ILambdaContext context)
   {
-    if (item.Tags?.Any() != true)
+    if (item.Tags is null or { Length: 0 })
     {
       return;
     }
 
+    var tableName = Environment.GetEnvironmentVariable("TABLE_NAME")!;
     var config = new DynamoDBOperationConfig()
     {
       OverrideTableName = Environment.GetEnvironmentVariable("TABLE_NAME"),
     };
 
-    Logger.LogInformation($"Attempting to save {item.Tags.Count()} tag(s)");
-    var tags = client.CreateBatchWrite<Tag>(config);
-    var eventTags = client.CreateBatchWrite<EventTag>(config);
-
-    foreach (var value in item.Tags.Distinct())
+    context.Logger.LogInformation($"Attempting to save {item.Tags!.Length} tag(s)");
+    await client.BatchWriteItemAsync(new BatchWriteItemRequest()
     {
-      tags.AddPutItem(TagMapper.FromDto(new TagDto
+      RequestItems = new()
       {
-        AccountId = item.AccountId,
-        Value = value,
-      }));
+        [tableName] = item.Tags.SelectMany(value =>
+          new List<WriteRequest>
+          {
+            new(new PutRequest()
+            {
+              Item = TagMapper.FromDto(new TagDto
+              {
+                AccountId = item.AccountId,
+                Value = value,
+              }),
+            }),
+            new(new PutRequest()
+            {
+              Item = EventTagMapper.FromDto(new EventTagDto
+              {
+                AccountId = item.AccountId,
+                Date = item.Date,
+                Value = value,
+              }),
+            }),
+          }).ToList(),
+      },
+    });
 
-      eventTags.AddPutItem(EventTagMapper.FromDto(new EventTagDto
-      {
-        AccountId = item.AccountId,
-        Date = item.Date,
-        Value = value,
-      }));
-    }
-
-    await tags.ExecuteAsync();
-    await eventTags.ExecuteAsync();
-    Logger.LogInformation("Tags saved");
+    context.Logger.LogInformation("Tags saved");
   }
 }

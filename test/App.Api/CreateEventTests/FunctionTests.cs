@@ -3,6 +3,7 @@ using System.Text.Json;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.TestUtilities;
 using App.Api.CreateEvent;
+using App.Api.Shared.Extensions;
 using App.Api.Shared.Infrastructure;
 using App.Api.Shared.Models;
 using TestBase;
@@ -15,9 +16,8 @@ public class FunctionTests
   [Fact]
   public async Task Should_ReturnEvent_When_InputIsValid()
   {
-    var function = new Function();
     var context = new TestLambdaContext();
-    var data = new Function.Command
+    var data = new CreateEventInput
     {
       AccountId = "test-account",
       Title = "Testing Testing",
@@ -25,7 +25,10 @@ public class FunctionTests
     var request = new APIGatewayProxyRequest
     {
       HttpMethod = HttpMethod.Post.Method,
-      Body = JsonSerializer.Serialize(data),
+      Body = JsonSerializer.Serialize(data, new JsonSerializerOptions()
+      {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+      }),
       RequestContext = new APIGatewayProxyRequest.ProxyRequestContext
       {
         RequestId = Guid.NewGuid().ToString(),
@@ -37,7 +40,7 @@ public class FunctionTests
         },
       },
     };
-    var response = await function.FunctionHandler(request, context);
+    var response = await Function.FunctionHandler(request, context);
 
     Assert.Equal((int)HttpStatusCode.OK, response.StatusCode);
 
@@ -54,10 +57,9 @@ public class FunctionTests
   [Fact]
   public async Task Should_ReturnEventWithTags_When_InputIsValid()
   {
-    var function = new Function();
     var context = new TestLambdaContext();
     var tags = new[] { "test", "testing" };
-    var data = new Function.Command
+    var data = new CreateEventInput
     {
       AccountId = "test-account",
       Title = "Testing Testing",
@@ -66,7 +68,10 @@ public class FunctionTests
     var request = new APIGatewayProxyRequest
     {
       HttpMethod = HttpMethod.Post.Method,
-      Body = JsonSerializer.Serialize(data),
+      Body = JsonSerializer.Serialize(data, new JsonSerializerOptions()
+      {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+      }),
       RequestContext = new APIGatewayProxyRequest.ProxyRequestContext
       {
         RequestId = Guid.NewGuid().ToString(),
@@ -78,7 +83,7 @@ public class FunctionTests
         },
       },
     };
-    var response = await function.FunctionHandler(request, context);
+    var response = await Function.FunctionHandler(request, context);
 
     Assert.Equal((int)HttpStatusCode.OK, response.StatusCode);
 
@@ -98,10 +103,9 @@ public class FunctionTests
   [Fact]
   public async Task Should_RemoveDuplicateTags_When_InputContainsDuplicateTagValues()
   {
-    var function = new Function();
     var context = new TestLambdaContext();
     var tags = new[] { "test", "test" };
-    var data = new Function.Command
+    var data = new CreateEventInput
     {
       AccountId = "test-account",
       Title = "Testing Testing",
@@ -110,7 +114,10 @@ public class FunctionTests
     var request = new APIGatewayProxyRequest
     {
       HttpMethod = HttpMethod.Post.Method,
-      Body = JsonSerializer.Serialize(data),
+      Body = JsonSerializer.Serialize(data, new JsonSerializerOptions()
+      {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+      }),
       RequestContext = new APIGatewayProxyRequest.ProxyRequestContext
       {
         RequestId = Guid.NewGuid().ToString(),
@@ -122,7 +129,7 @@ public class FunctionTests
         },
       },
     };
-    var response = await function.FunctionHandler(request, context);
+    var response = await Function.FunctionHandler(request, context);
 
     Assert.Equal((int)HttpStatusCode.OK, response.StatusCode);
 
@@ -141,10 +148,9 @@ public class FunctionTests
   [Fact]
   public async Task Should_ReturnEvent_When_InputIsValidWithDate()
   {
-    var function = new Function();
     var context = new TestLambdaContext();
     var date = DateTime.Now.AddDays(-1337).ToUniversalTime();
-    var data = new Function.Command
+    var data = new CreateEventInput
     {
       AccountId = "test-account",
       Title = "Testing Testing",
@@ -153,7 +159,10 @@ public class FunctionTests
     var request = new APIGatewayProxyRequest
     {
       HttpMethod = HttpMethod.Post.Method,
-      Body = JsonSerializer.Serialize(data),
+      Body = JsonSerializer.Serialize(data, new JsonSerializerOptions()
+      {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+      }),
       RequestContext = new APIGatewayProxyRequest.ProxyRequestContext
       {
         RequestId = Guid.NewGuid().ToString(),
@@ -165,7 +174,7 @@ public class FunctionTests
         },
       },
     };
-    var response = await function.FunctionHandler(request, context);
+    var response = await Function.FunctionHandler(request, context);
 
     Assert.Equal((int)HttpStatusCode.OK, response.StatusCode);
 
@@ -177,22 +186,24 @@ public class FunctionTests
     Assert.NotNull(body);
     Assert.Equal(data.Title, body!.Title);
     Assert.NotNull(body!.Id);
-    Assert.Equal(date, body!.Date);
+    Assert.Equal(date.ToUniversalString(), body!.Date.ToUniversalString());
   }
 
   [Fact]
   public async Task Should_ReturnUnauthorized_When_RequiredScopeIsMissing()
   {
-    var function = new Function();
     var context = new TestLambdaContext();
-    var data = new Function.Command
+    var data = new CreateEventInput
     {
       Title = "Testing Testing",
     };
     var request = new APIGatewayProxyRequest
     {
       HttpMethod = HttpMethod.Post.Method,
-      Body = JsonSerializer.Serialize(data),
+      Body = JsonSerializer.Serialize(data, new JsonSerializerOptions()
+      {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+      }),
       RequestContext = new APIGatewayProxyRequest.ProxyRequestContext
       {
         RequestId = Guid.NewGuid().ToString(),
@@ -204,7 +215,7 @@ public class FunctionTests
         },
       },
     };
-    var response = await function.FunctionHandler(request, context);
+    var response = await Function.FunctionHandler(request, context);
 
     Assert.Equal((int)HttpStatusCode.Unauthorized, response.StatusCode);
 

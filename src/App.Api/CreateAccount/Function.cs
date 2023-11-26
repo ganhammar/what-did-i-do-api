@@ -1,46 +1,65 @@
-﻿using Amazon.DynamoDBv2;
-using Amazon.DynamoDBv2.DataModel;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
+using Amazon.DynamoDBv2;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
+using Amazon.Lambda.RuntimeSupport;
 using Amazon.Lambda.Serialization.SystemTextJson;
 using App.Api.Shared.Extensions;
 using App.Api.Shared.Infrastructure;
 using App.Api.Shared.Models;
-using AWS.Lambda.Powertools.Logging;
-
-[assembly: LambdaSerializer(typeof(CamelCaseLambdaJsonSerializer))]
 
 namespace App.Api.CreateAccount;
 
-public class Function : FunctionBase
+public class Function
 {
-  public class Command
+  [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(Function))]
+  [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(APIGatewayProxyRequest))]
+  [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(APIGatewayProxyResponse))]
+  static Function()
   {
-    public string? Name { get; set; }
+    // AWSSDKHandler.RegisterXRayForAllServices();
   }
 
-  public Function() : base("account") { }
-
-  protected override async Task<APIGatewayHttpApiV2ProxyResponse> Handler(
-    APIGatewayProxyRequest apiGatewayProxyRequest)
+  private static async Task Main()
   {
-    Logger.LogInformation("Attempting to create account");
+    Func<APIGatewayProxyRequest, ILambdaContext, Task<APIGatewayProxyResponse>> handler = FunctionHandler;
+    await LambdaBootstrapBuilder
+      .Create(handler, new SourceGeneratorLambdaJsonSerializer<CustomJsonSerializerContext>(options =>
+      {
+        options.PropertyNameCaseInsensitive = true;
+        options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+      }))
+      .Build()
+      .RunAsync();
+  }
 
-    var request = TryDeserialize<Command>(apiGatewayProxyRequest);
-
-    if (request == default)
+  public static async Task<APIGatewayProxyResponse> FunctionHandler(
+    APIGatewayProxyRequest apiGatewayProxyRequest, ILambdaContext context)
+  {
+    if (!apiGatewayProxyRequest.HasRequiredScopes("account"))
     {
-      return Respond(request);
+      return FunctionHelpers.UnauthorizedResponse;
+    }
+    else if (string.IsNullOrEmpty(apiGatewayProxyRequest.Body))
+    {
+      return FunctionHelpers.NoBodyResponse;
     }
 
-    var client = new DynamoDBContext(new AmazonDynamoDBClient());
-    var id = await AccountMapper.GetUniqueId(request.Name!, client);
-    Logger.LogInformation($"The unique Id for the account is {id}");
+    var request = JsonSerializer.Deserialize(
+      apiGatewayProxyRequest.Body,
+      CustomJsonSerializerContext.Default.CreateAccountInput);
 
-    var config = new DynamoDBOperationConfig
+    if (request is null)
     {
-      OverrideTableName = Environment.GetEnvironmentVariable("TABLE_NAME"),
-    };
+      return FunctionHelpers.NoBodyResponse;
+    }
+
+    var client = new AmazonDynamoDBClient();
+    var id = await AccountMapper.GetUniqueId(request.Name!, client);
+    context.Logger.LogInformation($"Creating account with id \"{id}\"");
+
+    var tableName = Environment.GetEnvironmentVariable("TABLE_NAME");
 
     var item = AccountMapper.FromDto(new AccountDto
     {
@@ -48,8 +67,13 @@ public class Function : FunctionBase
       Name = request.Name,
       CreateDate = DateTime.UtcNow,
     });
-    await client.SaveAsync(item, config);
-    Logger.LogInformation("Account created");
+    await client.PutItemAsync(tableName, item);
+
+    var subject = apiGatewayProxyRequest.GetSubject();
+    var email = apiGatewayProxyRequest.GetEmail();
+
+    ArgumentNullException.ThrowIfNull(subject, nameof(MemberDto.Subject));
+    ArgumentNullException.ThrowIfNull(email, nameof(MemberDto.Email));
 
     var member = MemberMapper.FromDto(new MemberDto
     {
@@ -60,13 +84,8 @@ public class Function : FunctionBase
       CreateDate = DateTime.UtcNow,
     });
 
-    ArgumentNullException.ThrowIfNull(member.Subject, nameof(member.Subject));
-    ArgumentNullException.ThrowIfNull(member.Email, nameof(member.Email));
+    await client.PutItemAsync(tableName, member);
 
-    Logger.LogInformation("Attempting to create account member of type owner");
-    await client.SaveAsync(member, config);
-
-    Logger.LogInformation("Member created");
-    return Respond(AccountMapper.ToDto(item));
+    return FunctionHelpers.Respond(AccountMapper.ToDto(item), CustomJsonSerializerContext.Default.AccountDto);
   }
 }

@@ -1,14 +1,8 @@
 ﻿namespace App.Api.Shared.Infrastructure;
 
-public class FunctionError
+public class FunctionError(string propertyName, string message)
 {
-  public FunctionError(string propertyName, string message)
-  {
-    PropertyName = propertyName;
-    Message = message;
-  }
-
-  public string PropertyName { get; set; }
-  public string Message { get; set; }
+  public string PropertyName { get; set; } = propertyName;
+  public string Message { get; set; } = message;
   public string? ErrorCode { get; set; }
 }

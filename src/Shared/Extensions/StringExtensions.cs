@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 
 namespace App.Api.Shared.Extensions;
 
-public static class StringExtensions
+public static partial class StringExtensions
 {
   public static string UrlFriendly(this string value)
   {
@@ -12,24 +12,24 @@ public static class StringExtensions
     // replace diactrics
     urlFriendlyValue = ReplaceDiacritics(urlFriendlyValue);
     // remove entities
-    urlFriendlyValue = Regex.Replace(urlFriendlyValue, @"&\w+;", "");
+    urlFriendlyValue = RemoveEntities().Replace(urlFriendlyValue, "");
     // remove anything that is not letters, numbers, dash, or space
-    urlFriendlyValue = Regex.Replace(urlFriendlyValue, @"[^a-z0-9\-\s]", "");
+    urlFriendlyValue = RemoveUnwantedCharacters().Replace(urlFriendlyValue, "");
     // replace new line and tabs
-    urlFriendlyValue = Regex.Replace(urlFriendlyValue, @"\t|\n|\r", "");
+    urlFriendlyValue = ReplaceNewLineAndTabs().Replace(urlFriendlyValue, "");
     // replace spaces
     urlFriendlyValue = urlFriendlyValue.Replace(' ', '-');
     // collapse dashes
-    urlFriendlyValue = Regex.Replace(urlFriendlyValue, @"-{2,}", "-");
+    urlFriendlyValue = CollapseDashes().Replace(urlFriendlyValue, "-");
     // trim excessive dashes at the beginning
-    urlFriendlyValue = urlFriendlyValue.TrimStart(new[] { '-' });
+    urlFriendlyValue = urlFriendlyValue.TrimStart(['-']);
     // if it's too long, clip it
     if (urlFriendlyValue.Length > 50)
     {
-      urlFriendlyValue = urlFriendlyValue.Substring(0, 49);
+      urlFriendlyValue = urlFriendlyValue[..49];
     }
     // remove trailing dashes
-    urlFriendlyValue = urlFriendlyValue.TrimEnd(new[] { '-' });
+    urlFriendlyValue = urlFriendlyValue.TrimEnd(['-']);
 
     // don't allow guids
     if (Guid.TryParse(urlFriendlyValue, out _))
@@ -71,4 +71,16 @@ public static class StringExtensions
       return default;
     }
   }
+
+  [GeneratedRegex(@"-{2,}")]
+  private static partial Regex CollapseDashes();
+
+  [GeneratedRegex(@"\t|\n|\r")]
+  private static partial Regex ReplaceNewLineAndTabs();
+
+  [GeneratedRegex(@"[^a-z0-9\-\s]")]
+  private static partial Regex RemoveUnwantedCharacters();
+
+  [GeneratedRegex(@"&\w+;")]
+  private static partial Regex RemoveEntities();
 }

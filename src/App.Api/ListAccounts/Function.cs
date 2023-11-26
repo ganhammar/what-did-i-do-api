@@ -1,66 +1,106 @@
-﻿using Amazon.DynamoDBv2;
-using Amazon.DynamoDBv2.DataModel;
-using Amazon.DynamoDBv2.DocumentModel;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
+using Amazon.DynamoDBv2;
+using Amazon.DynamoDBv2.Model;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
+using Amazon.Lambda.RuntimeSupport;
 using Amazon.Lambda.Serialization.SystemTextJson;
 using App.Api.Shared.Extensions;
 using App.Api.Shared.Infrastructure;
 using App.Api.Shared.Models;
-using AWS.Lambda.Powertools.Logging;
-
-[assembly: LambdaSerializer(typeof(CamelCaseLambdaJsonSerializer))]
 
 namespace App.Api.ListAccounts;
 
-public class Function : FunctionBase
+public class Function
 {
-  public Function() : base("account") { }
-
-  protected override async Task<APIGatewayHttpApiV2ProxyResponse> Handler(
-    APIGatewayProxyRequest apiGatewayProxyRequest)
+  [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(Function))]
+  [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(APIGatewayProxyRequest))]
+  [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(APIGatewayProxyResponse))]
+  static Function()
   {
-    Logger.LogInformation("Listing accounts for logged in user");
+    // AWSSDKHandler.RegisterXRayForAllServices();
+  }
 
-    var client = new DynamoDBContext(new AmazonDynamoDBClient());
-    var subject = apiGatewayProxyRequest.GetSubject();
-
-    ArgumentNullException.ThrowIfNull(subject, nameof(Member.Subject));
-
-    var config = new DynamoDBOperationConfig
-    {
-      OverrideTableName = Environment.GetEnvironmentVariable("TABLE_NAME"),
-    };
-    var search = client.FromQueryAsync<Member>(new()
-    {
-      IndexName = "Subject-index",
-      KeyExpression = new Expression
+  private static async Task Main()
+  {
+    Func<APIGatewayProxyRequest, ILambdaContext, Task<APIGatewayProxyResponse>> handler = FunctionHandler;
+    await LambdaBootstrapBuilder
+      .Create(handler, new SourceGeneratorLambdaJsonSerializer<CustomJsonSerializerContext>(options =>
       {
-        ExpressionStatement = "Subject = :subject AND begins_with(PartitionKey, :partitionKey)",
-        ExpressionAttributeValues = new Dictionary<string, DynamoDBEntry>
-        {
-          { ":subject", subject },
-          { ":partitionKey", "MEMBER#" },
-        }
-      },
-    }, config);
-    var memberAccounts = await search.GetRemainingAsync();
+        options.PropertyNameCaseInsensitive = true;
+        options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+      }))
+      .Build()
+      .RunAsync();
+  }
 
-    Logger.LogInformation($"User is member of {memberAccounts.Count} accounts");
-
-    var batch = client.CreateBatchGet<Account>(config);
-    foreach (var accountId in memberAccounts.Select(x => MemberMapper.ToDto(x).AccountId).Distinct())
+  public static async Task<APIGatewayProxyResponse> FunctionHandler(
+    APIGatewayProxyRequest apiGatewayProxyRequest, ILambdaContext context)
+  {
+    if (!apiGatewayProxyRequest.HasRequiredScopes("account"))
     {
-      var account = AccountMapper.FromDto(new AccountDto
-      {
-        Id = accountId,
-      });
-      batch.AddKey(account.PartitionKey, account.SortKey);
+      return FunctionHelpers.UnauthorizedResponse;
     }
-    await batch.ExecuteAsync();
 
-    Logger.LogInformation($"Fetched {batch.Results.Count} unique accounts");
+    var client = new AmazonDynamoDBClient();
 
-    return Respond(batch.Results.Select(x => AccountMapper.ToDto(x)).ToList());
+    var subject = apiGatewayProxyRequest.GetSubject();
+    ArgumentNullException.ThrowIfNull(subject, nameof(MemberDto.Subject));
+
+    var tableName = Environment.GetEnvironmentVariable("TABLE_NAME");
+    ArgumentNullException.ThrowIfNull(tableName, nameof(tableName));
+
+    var members = await client.QueryAsync(new()
+    {
+      TableName = tableName,
+      IndexName = "Subject-index",
+      KeyConditionExpression = "Subject = :subject AND begins_with(PartitionKey, :partitionKey)",
+      ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+      {
+        { ":subject", new AttributeValue(subject) },
+        { ":partitionKey", new AttributeValue("MEMBER#") },
+      },
+    });
+
+    context.Logger.LogInformation($"User is member of {members.Count} accounts");
+
+    if (members.Count == 0)
+    {
+      return FunctionHelpers.Respond(
+        new List<AccountDto>(),
+        CustomJsonSerializerContext.Default.ListAccountDto);
+    }
+
+    var items = await client.BatchGetItemAsync(new BatchGetItemRequest
+    {
+      RequestItems = new Dictionary<string, KeysAndAttributes>
+      {
+        {
+          tableName,
+          new KeysAndAttributes
+          {
+            Keys = members.Items.Select(x => MemberMapper.ToDto(x).AccountId).Distinct().Select(accountId =>
+            {
+              var account = AccountMapper.FromDto(new AccountDto
+              {
+                Id = accountId,
+              });
+              return new Dictionary<string, AttributeValue>
+              {
+                { "PartitionKey", new AttributeValue(account["PartitionKey"].S!) },
+                { "SortKey", new AttributeValue(account["SortKey"].S!) },
+              };
+            }).ToList(),
+          }
+        },
+      },
+    });
+
+    context.Logger.LogInformation($"Fetched {items.Responses.Count} unique accounts");
+
+    return FunctionHelpers.Respond(
+      items.Responses.First().Value.Select(AccountMapper.ToDto).ToList(),
+      CustomJsonSerializerContext.Default.ListAccountDto);
   }
 }
