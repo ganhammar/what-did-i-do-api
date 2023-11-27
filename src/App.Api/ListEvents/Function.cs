@@ -262,24 +262,13 @@ public class Function
       return default;
     }
 
+    var result = new Dictionary<string, AttributeValue>();
+
     foreach (KeyValuePair<string, AttributeValue> item in deserializedToken)
     {
-      SetPrivatePropertyValue<bool?>(item.Value, "_null", null);
+      result.Add(item.Key, new AttributeValue(item.Value.S));
     }
 
-    return deserializedToken;
-  }
-
-  [DynamicDependency(DynamicallyAccessedMemberTypes.NonPublicFields, typeof(AttributeValue))]
-  public static void SetPrivatePropertyValue<T>(object obj, string propName, T val)
-  {
-    foreach (var fi in obj.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic))
-    {
-      if (fi.Name.Contains(propName, StringComparison.CurrentCultureIgnoreCase))
-      {
-        fi.SetValue(obj, val);
-        break;
-      }
-    }
+    return result;
   }
 }
