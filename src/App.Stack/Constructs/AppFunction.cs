@@ -8,8 +8,8 @@ namespace AppStack.Constructs;
 public class AppFunction(Construct scope, string id, AppFunction.Props props)
   : Function(scope, $"{id}Function", new FunctionProps
   {
-    Runtime = Runtime.DOTNET_6,
-    Architecture = Architecture.ARM_64,
+    Runtime = Runtime.PROVIDED_AL2023,
+    Architecture = Architecture.X86_64,
     Handler = props.Handler,
     Code = Code.FromAsset($"./.output/{id}.zip"),
     Timeout = Duration.Minutes(1),
