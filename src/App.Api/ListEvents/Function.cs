@@ -240,8 +240,8 @@ public class Function
     }
 
     var json = JsonSerializer.Serialize(
-      dictionary,
-      CustomJsonSerializerContext.Default.DictionaryStringAttributeValue);
+      dictionary.ToDictionary(x => x.Key, x => x.Value.S),
+      CustomJsonSerializerContext.Default.DictionaryStringString);
     return Convert.ToBase64String(Encoding.UTF8.GetBytes(json.ToString()));
   }
 
@@ -255,7 +255,7 @@ public class Function
     var bytes = Convert.FromBase64String(token);
     var deserializedToken = JsonSerializer.Deserialize(
       Encoding.UTF8.GetString(bytes),
-      CustomJsonSerializerContext.Default.DictionaryStringAttributeValue);
+      CustomJsonSerializerContext.Default.DictionaryStringString);
 
     if (deserializedToken is null)
     {
@@ -264,9 +264,9 @@ public class Function
 
     var result = new Dictionary<string, AttributeValue>();
 
-    foreach (KeyValuePair<string, AttributeValue> item in deserializedToken)
+    foreach (KeyValuePair<string, string> item in deserializedToken)
     {
-      result.Add(item.Key, new AttributeValue(item.Value.S));
+      result.Add(item.Key, new AttributeValue(item.Value));
     }
 
     return result;
