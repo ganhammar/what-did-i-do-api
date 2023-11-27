@@ -42,7 +42,7 @@ jobs:
       - name: Build
         run: dotnet build --no-restore --configuration Release
       - name: Publish
-        run: dotnet publish --no-build --configuration Release -maxcpucount:1
+        run: dotnet publish --no-build --configuration Release
       - name: Zip Packages
         run: |
           mkdir .output
