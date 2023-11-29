@@ -47,7 +47,7 @@ public class Function
       EncryptionCertificate = parameters.Parameters
         .Where(x => x.Name.EndsWith("EncryptionCertificate"))
         .Select(x => x.Value).FirstOrDefault(),
-      Issuer = "https://www.wdid.fyi/",
+      Issuers = ["https://www.wdid.fyi/", "http://localhost:3001/"],
       Audiences = ["what-did-i-do.web-client"],
     };
 
@@ -106,7 +106,7 @@ public class Function
       IssuerSigningKey = new X509SecurityKey(signingCertificate),
       ValidateLifetime = true,
       ValidAudiences = authorizationOptions.Audiences,
-      ValidIssuer = authorizationOptions.Issuer,
+      ValidIssuers = authorizationOptions.Issuers,
     };
     var tokenHandler = new JwtSecurityTokenHandler();
 
