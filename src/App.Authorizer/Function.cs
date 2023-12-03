@@ -19,6 +19,7 @@ public class Function
   static Function()
   { }
 
+  [ExcludeFromCodeCoverage]
   private static async Task Main()
   {
     Func<APIGatewayCustomAuthorizerRequest, ILambdaContext, Task<APIGatewayCustomAuthorizerResponse>> handler = FunctionHandler;

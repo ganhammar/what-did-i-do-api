@@ -22,6 +22,7 @@ public class Function
   static Function()
   { }
 
+  [ExcludeFromCodeCoverage]
   private static async Task Main()
   {
     Func<APIGatewayProxyRequest, ILambdaContext, Task<APIGatewayProxyResponse>> handler = FunctionHandler;
