@@ -27,7 +27,7 @@
     <MicrosoftNETTestSdkVersion>17.8.0</MicrosoftNETTestSdkVersion>
     <MoqVersion>4.20.69</MoqVersion>
     <SystemIdentityModelTokensJwtVersion>7.0.3</SystemIdentityModelTokensJwtVersion>
-    <XunitVersion>2.6.2</XunitVersion>
+    <XunitVersion>2.6.3</XunitVersion>
     <XunitRunnerVisualstudioVersion>2.5.5</XunitRunnerVisualstudioVersion>
   </PropertyGroup>
 
