@@ -14,7 +14,12 @@ public class AppFunction(Construct scope, string id, AppFunction.Props props)
     Code = Code.FromAsset($"./.output/{id}.zip"),
     Timeout = Duration.Minutes(1),
     MemorySize = props.MemorySize,
-    LogRetention = RetentionDays.ONE_DAY,
+    LogGroup = new LogGroup(scope, $"{id}LogGroup", new LogGroupProps
+    {
+      LogGroupName = $"/aws/lambda/{id}",
+      Retention = RetentionDays.ONE_DAY,
+      RemovalPolicy = RemovalPolicy.DESTROY,
+    }),
     Tracing = Tracing.ACTIVE,
     Environment = new Dictionary<string, string>
     {
