@@ -32,12 +32,12 @@ public static class EventMapper
       { "Title", new AttributeValue(instance.Title) },
     };
 
-    if (instance.Description != default)
+    if (instance.Description is not null and { Length: > 0 })
     {
       items.Add("Description", new AttributeValue(instance.Description));
     }
 
-    if (instance.Tags != default)
+    if (instance.Tags is not null and { Length: > 0 })
     {
       items.Add("Tags", new AttributeValue(instance.Tags.ToList()));
     }
